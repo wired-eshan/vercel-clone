@@ -1,7 +1,6 @@
 const express = require('express');
 const { generateSlug } = require('random-word-slugs');
 const { ECSClient, RunTaskCommand } = require('@aws-sdk/client-ecs');
-const { Server } = require('socket.io');
 const { z } = require('zod');
 const { PrismaClient } = require('./generated/prisma');
 const { createClient } = require('@clickhouse/client');
@@ -10,44 +9,37 @@ const { v4 : uuidv4 } = require('uuid');
 const fs = require('fs');
 const path = require('path');
 
+const { authMiddleware } = require('./middlewares/auth');
+const auth = require('./routes/auth/auth');
+
 const app = express();
 const PORT = 9000;
 const prisma = new PrismaClient();
 
-const io = new Server({ cors: '*'});
+app.use(express.json());
+app.use('/v1/auth', auth);
 
 const kafka = new Kafka({
   clientId: `api-server`,
-  brokers: ['kafka-2ffa'],
+  brokers: ['kafka-2ffa29b6-eshan-demo.l.aivencloud.com:13563'],
   ssl: {
     ca: [fs.readFileSync(path.join(__dirname, 'kafka.pem'), 'utf-8')],
   },
   sasl: {
     username: 'avnadmin',
-    password: 'pass',
+    password: 'password',
     mechanism: 'plain',
   }
 });
 
 const client = createClient({
-    host: 'https://clickhouse-1966e9ab-eshan-demo.b.aivencloud.com:1',
+    host: 'https://clickhouse-1966e9ab-eshan-demo.b.aivencloud.com:13551',
     username: 'avnadmin',
-    password: 'pass',
+    password: 'password',
     database: 'default'
 });
 
 const consumer = kafka.consumer({ groupId: 'api-server-logs-consumer' });
-
-io.on('connection', (socket) => {
-    socket.on('subscribe', channel => {
-        socket.join(channel);
-        socket.emit('message', `Subscribed to ${channel}`);
-    })
-});
-
-io.listen(9001, () => {
-    console.log('Socket.io server is running on port 9001');
-});
 
 app.use(express.json());
 
@@ -64,7 +56,7 @@ const ecsConfig = {
     task: 'arn:aws:ecs:ap-south-1'
 }
 
-app.post('/project', async (req, res) => {
+app.post('/project/create', async (req, res) => {
     const schema = z.object({
         gitUrl : z.string(),
         name: z.string()
@@ -88,7 +80,7 @@ app.post('/project', async (req, res) => {
     return res.json({status: 'success', data: {project}});
 });
 
-app.post('/upload', async (req, res) => {
+app.post('/project/upload', async (req, res) => {
     const { projectId } = req.body;
 
     const project = await prisma.project.findUnique({
@@ -193,7 +185,7 @@ async function initKafkaConsumer() {
     })
 }
 
-initKafkaConsumer();
+//initKafkaConsumer();
 
 app.listen(PORT, () => {
     console.log(`API server is running on port ${PORT}`);
