@@ -8,6 +8,8 @@ const { Kafka } = require('kafkajs');
 const { v4 : uuidv4 } = require('uuid');
 const fs = require('fs');
 const path = require('path');
+const cors = require('cors');
+const cookieParser = require('cookie-parser');
 
 const { authMiddleware } = require('./middlewares/auth');
 const auth = require('./routes/auth/auth');
@@ -17,6 +19,11 @@ const PORT = 9000;
 const prisma = new PrismaClient();
 
 app.use(express.json());
+app.use(cors({
+    origin: 'http://localhost:5173',
+    credentials: true
+}));
+app.use(cookieParser()); // Middleware to parse cookies
 app.use('/v1/auth', auth);
 
 const kafka = new Kafka({

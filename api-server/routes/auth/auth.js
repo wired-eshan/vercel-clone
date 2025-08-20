@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { PrismaClient } = require('../../generated/prisma');
 const { z } = require('zod');
-
+const { authMiddleware } = require('../../middlewares/auth');
 const JWT_SECRET = process.env.JWT_SECRET || 'some-secret-key';
 
 const prisma = new PrismaClient();
@@ -44,7 +44,7 @@ router.post('/login', async (req, res) => {
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
     console.log('Generated token:', token);
     res.cookie('token', token);
-    res.status(201).json({ status: 'success', data: { userId: user.id, email: user.email } });
+    res.status(200).json({ status: 'success', data: { userId: user.id, email: user.email } });
 });
 
 router.post('/signup', async (req, res) => {
@@ -79,6 +79,17 @@ router.post('/signup', async (req, res) => {
     });
 
     res.status(201).json({ status: 'success', data: { userId: user.id, email: user.email } });
+});
+
+router.post('/logout', (req, res) => {
+    console.log('Logout request received');
+    res.clearCookie('token');
+    res.status(200).json({ status: 'success', message: 'Logged out successfully ' });
+});
+
+router.get('/authenticate', authMiddleware, (req, res) => {
+    console.log('Authentication successful for user:', req.user);
+    res.status(200).json({ authenticated: true, user : req.user });
 });
 
 module.exports = router;
