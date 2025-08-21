@@ -4,6 +4,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import Home from './components/Home';
 import Login from './components/Login';
 import ProtectedRoute from './components/ProtectedRoute';
+import './App.css';
 
 function App() {
 
