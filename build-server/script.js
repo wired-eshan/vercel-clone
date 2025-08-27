@@ -1,9 +1,12 @@
-const { exec } = require('child_process');
-const path = require('path');
-const fs = require('fs');
-const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
-const mime = require('mime-types');
-const { Kafka } = require('kafkajs');
+const { exec } = require("child_process");
+const path = require("path");
+const fs = require("fs");
+const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+const mime = require("mime-types");
+const { Kafka } = require("kafkajs");
+const { PrismaClient } = require("./generated/prisma");
+
+const prisma = new PrismaClient();
 
 const s3Client = new S3Client({
     region: 'ap-south-1',
@@ -20,7 +23,7 @@ const kafka = new Kafka({
   clientId: `docker-build-server-${DEPLOYMENT_ID}`,
   brokers: ['kafka-2f'],
   ssl: {
-    ca: [fs.readFileSync(path.join(__dirname, 'kafka.pem'), 'utf-8')],
+    ca: [fs.readFileSync(path.join(__dirname, "kafka.pem"), "utf-8")],
   },
   sasl: {
     username: 'avnadmin',
@@ -29,68 +32,102 @@ const kafka = new Kafka({
   }
 });
 
-const producer = kafka.producer();
+//const producer = kafka.producer();
 
 async function publishLog(log) {
-    await producer.send({topic: `container-logs`, messages: [{key: 'log', value: JSON.stringify({PROJECT_ID, DEPLOYMENT_ID, log})}]})
+  console.log("Publishing log:", log);
+  await producer.send({topic: `container-logs`, messages: [{key: 'log', value: JSON.stringify({PROJECT_ID, DEPLOYMENT_ID, log})}]})
 }
 
 async function init() {
-    await producer.connect();
+  await producer.connect();
 
-    console.log('Executing script.js...');
-    await publishLog('Build started...');
+  console.log("Executing script.js...");
+  await publishLog("Build started...");
 
-    const outputPath = path.join(__dirname, 'output');
+  const outputPath = path.join(__dirname, "output");
 
-    const t = exec(`cd ${outputPath} && npm install && npm run build`);
-    t.stdout.on('data', async (data) => {
-        console.log(`stdout: ${data}`);
-        await publishLog(data.toString());
-    });
+  await prisma.deployment.update({
+    where: {
+      id: DEPLOYMENT_ID,
+    },
+    data: {
+      status: "BUILDING",
+    },
+  });
 
-    t.stdout.on('error', async (data) => {
-        console.error(`stderr: ${data}`);
-        await publishLog(data.toString());
-    });
+  const t = exec(`cd ${outputPath} && npm install && npm run build`);
+  t.stdout.on("data", async (data) => {
+    console.log(`stdout: ${data}`);
+    await publishLog(data.toString());
+  });
 
-    t.on('close', async function () {
-        console.log('Build completed.');
-        await publishLog('Build completed.');
+  t.stdout.on("error", async (data) => {
+    console.error(`stderr: ${data}`);
+    await publishLog(data.toString());
+  });
 
-        const distPath = path.join(__dirname, 'output', 'dist');
+  t.on("close", async function () {
+    console.log("Build completed.");
+    await publishLog("Build completed.");
 
-        const distFolderContents = fs.readdirSync(distPath, {recursive: true});
+    try {
+      const distPath = path.join(__dirname, "output", "dist");
 
-        for(const file of distFolderContents) {
-            const filePath = path.join(distPath, file);
-            if(fs.lstatSync(filePath).isDirectory()) {
-                continue;
-            }
+      const distFolderContents = fs.readdirSync(distPath, { recursive: true });
 
-            console.log(`Uploading ${filePath} to S3...`);
-            await publishLog(`Uploading ${filePath} to S3...`);
-
-            const command = new PutObjectCommand({
-                Bucket: 'vercel-like-project',
-                Key: `__outputs/${PROJECT_ID}/${file}`,
-                Body: fs.createReadStream(filePath),
-                ContentType: mime.lookup(filePath),
-            });
-
-            await s3Client.send(command)
-                .then(async () => {
-                    console.log(`Uploaded ${filePath} to S3`);
-                    await publishLog(`Uploaded ${filePath} to S3`);
-                })
-                .catch(async (error) => {
-                    console.error(`Error uploading ${filePath}:`, error);
-                    await publishLog(`Error uploading ${filePath}: ${error.message}`);
-                });
+      for (const file of distFolderContents) {
+        const filePath = path.join(distPath, file);
+        if (fs.lstatSync(filePath).isDirectory()) {
+          continue;
         }
+
+        console.log(`Uploading ${filePath} to S3...`);
+        await publishLog(`Uploading ${filePath} to S3...`);
+
+        const command = new PutObjectCommand({
+          Bucket: "vercel-like-project",
+          Key: `__outputs/${PROJECT_ID}/${file}`,
+          Body: fs.createReadStream(filePath),
+          ContentType: mime.lookup(filePath),
+        });
+
+        await s3Client
+          .send(command)
+          .then(async () => {
+            console.log(`Uploaded ${filePath} to S3`);
+            await publishLog(`Uploaded ${filePath} to S3`);
+          })
+          .catch(async (error) => {
+            console.error(`Error uploading ${filePath}:`, error);
+            await publishLog(`Error uploading ${filePath}: ${error.message}`);
+          });
+      }
+    } catch (error) {
+        console.error('Error reading dist folder:', error);
+        await publishLog(`Error reading dist folder: ${error.message}`);
+        await prisma.deployment.update({
+            where: {
+              id: DEPLOYMENT_ID,
+            },
+            data: {
+              status: "FAILED",
+            },
+          });
+    } finally {
+        await prisma.deployment.update({
+            where: {
+              id: DEPLOYMENT_ID,
+            },
+            data: {
+              status: "SUCCESSFUL",
+            },
+          });
         await publishLog(`Done uploading build files to S3.`);
-        process.exit(0);
-    });
+    }
+
+    process.exit(0);
+  });
 }
 
 init();

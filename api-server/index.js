@@ -10,6 +10,8 @@ const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const dotenv = require('dotenv');
+dotenv.config();
 
 const { authMiddleware } = require('./middlewares/auth');
 const auth = require('./routes/auth/auth');
@@ -28,45 +30,44 @@ app.use('/v1/auth', auth);
 
 const kafka = new Kafka({
   clientId: `api-server`,
-  brokers: ['kafka-2ffa29b6-eshan-demo.l.aivencloud.com:13563'],
+  brokers: [process.env.KAFKA_BROKER_1],
   ssl: {
     ca: [fs.readFileSync(path.join(__dirname, 'kafka.pem'), 'utf-8')],
   },
   sasl: {
     username: 'avnadmin',
-    password: 'password',
+    password: process.env.KAFKA_SASL_PASSWORD,
     mechanism: 'plain',
   }
 });
 
 const client = createClient({
-    host: 'https://clickhouse-1966e9ab-eshan-demo.b.aivencloud.com:13551',
+    host: process.env.CLICKHOUSE_HOST,
     username: 'avnadmin',
-    password: 'password',
+    password: process.env.CLICKHOUSE_PASSWORD,
     database: 'default'
 });
 
-const consumer = kafka.consumer({ groupId: 'api-server-logs-consumer' });
+//const consumer = kafka.consumer({ groupId: 'api-server-logs-consumer' });
 
 app.use(express.json());
 
 const ecsClient = new ECSClient({
     region: 'ap-south-1',
     credentials: {
-        accessKeyId: 'acess',
-        secretAccessKey: 'secret',        
+        accessKeyId: process.env.AWS_ECS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_ECS_SECRET_ACCESS_KEY,        
     }
 });
 
 const ecsConfig = {
-    cluster: 'arn:aws:ecs:ap-south-1',
-    task: 'arn:aws:ecs:ap-south-1'
+    cluster: process.env.AWS_ECS_CLUSTER,
+    task: process.env.AWS_ECS_TASK
 }
 
 app.post('/project/create', async (req, res) => {
     const schema = z.object({
-        gitUrl : z.string(),
-        name: z.string()
+        gitUrl : z.string()
     });
 
     const validation = schema.safeParse(req.body);
@@ -75,13 +76,24 @@ app.post('/project/create', async (req, res) => {
         return res.status(400).json({ error: 'Invalid input data' });
     }
 
-    const { gitUrl, name } = validation.data;
+    const { gitUrl } = validation.data;
+    const name = gitUrl.split('/')[4];
+
+    //#TODO: If project with same gitUrl already exists, return that
+    const existingProject = await prisma.project.findFirst({
+        where: { gitUrl }
+    });
+
+    if (existingProject) {
+        return res.json({status: 'success', data: {project: existingProject}});
+    }
 
     const project = await prisma.project.create({
         data: {
             name,
             gitUrl,
             subDomain : generateSlug(),
+            userId: req.user.id,
         }
     });
     return res.json({status: 'success', data: {project}});
