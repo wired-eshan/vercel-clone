@@ -1,32 +1,17 @@
 const express = require('express');
-const { generateSlug } = require('random-word-slugs');
-const { ECSClient, RunTaskCommand } = require('@aws-sdk/client-ecs');
-const { z } = require('zod');
-const { PrismaClient } = require('./generated/prisma');
-const { createClient } = require('@clickhouse/client');
-const { Kafka } = require('kafkajs');
-const { v4 : uuidv4 } = require('uuid');
-const fs = require('fs');
-const path = require('path');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
-const dotenv = require('dotenv');
-dotenv.config();
+const { createClient } = require('@clickhouse/client');
+const { Kafka } = require('kafkajs');
+const fs = require('fs');
+const path = require('path');
+const { v4 : uuidv4 } = require('uuid');
 
-const { authMiddleware } = require('./middlewares/auth');
-const auth = require('./routes/auth/auth');
+const auth = require('./routes/api/auth');
+const project = require('./routes/api/project');
 
 const app = express();
 const PORT = 9000;
-const prisma = new PrismaClient();
-
-app.use(express.json());
-app.use(cors({
-    origin: 'http://localhost:5173',
-    credentials: true
-}));
-app.use(cookieParser()); // Middleware to parse cookies
-app.use('/v1/auth', auth);
 
 const kafka = new Kafka({
   clientId: `api-server`,
@@ -51,126 +36,15 @@ const client = createClient({
 //const consumer = kafka.consumer({ groupId: 'api-server-logs-consumer' });
 
 app.use(express.json());
+app.use(cors({
+    origin: 'http://localhost:5173',
+    credentials: true
+}));
+app.use(cookieParser()); // Middleware to parse cookies
+app.use('/v1/auth', auth);
+app.use('/v1/project', project);
 
-const ecsClient = new ECSClient({
-    region: 'ap-south-1',
-    credentials: {
-        accessKeyId: process.env.AWS_ECS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_ECS_SECRET_ACCESS_KEY,        
-    }
-});
-
-const ecsConfig = {
-    cluster: process.env.AWS_ECS_CLUSTER,
-    task: process.env.AWS_ECS_TASK
-}
-
-app.post('/project/create', async (req, res) => {
-    const schema = z.object({
-        gitUrl : z.string()
-    });
-
-    const validation = schema.safeParse(req.body);
-
-    if (!validation.success) {
-        return res.status(400).json({ error: 'Invalid input data' });
-    }
-
-    const { gitUrl } = validation.data;
-    const name = gitUrl.split('/')[4];
-
-    //#TODO: If project with same gitUrl already exists, return that
-    const existingProject = await prisma.project.findFirst({
-        where: { gitUrl }
-    });
-
-    if (existingProject) {
-        return res.json({status: 'success', data: {project: existingProject}});
-    }
-
-    const project = await prisma.project.create({
-        data: {
-            name,
-            gitUrl,
-            subDomain : generateSlug(),
-            userId: req.user.id,
-        }
-    });
-    return res.json({status: 'success', data: {project}});
-});
-
-app.post('/project/upload', async (req, res) => {
-    const { projectId } = req.body;
-
-    const project = await prisma.project.findUnique({
-        where: { id: projectId }
-    });
-
-    if (!project) {
-        return res.status(404).json({ error: 'Project not found' });
-    }
-
-    //return error if project already has a deployment status QUEUEUED or BUILDING
-    const existingDeployment = await prisma.deployment.findFirst({
-        where: {
-            projectId: project.id,
-            OR: [
-                { status: 'QUEUED' },
-                { status: 'BUILDING' }
-            ]
-        }
-    });
-    if (existingDeployment) {
-        return res.status(400).json({ error: 'Project is already queued for build' });
-    }
-
-    const deployment = await prisma.deployment.create({
-        data: {
-            project : { connect: { id: project.id } },
-            status: 'QUEUED',
-        }
-    });
-
-    const command = new RunTaskCommand({
-        cluster: ecsConfig.cluster,
-        taskDefinition: ecsConfig.task,
-        launchType: 'FARGATE',
-        count: 1,
-        networkConfiguration: {
-            awsvpcConfiguration: {
-                subnets: ['subnet-056b58ac45618cfad', 'subnet-0a816b169578d08d8', 'subnet-03b3f6ebdb35a5b2b'],
-                securityGroups: ['sg-07e2ef174cb3b31e5'],
-                assignPublicIp: 'ENABLED'
-            }
-        },
-        overrides: {
-            containerOverrides: [
-                {
-                    name: 'builder-image',
-                    environment: [
-                        { name: 'GIT_REPOSITORY_URL', value: project.gitUrl },
-                        { name: 'PROJECT_ID', value: projectId },
-                        { name: 'DEPLOYMENT_ID', value: deployment.id },
-                    ]
-                }
-            ]
-        }
-    });
-
-    await ecsClient.send(command)
-    .then(() => {
-        res.json({
-            status: 'queued for build',
-            data: {
-                deploymentId: deployment.id
-            },
-        })
-    })
-    .catch((error) => {
-        console.error('Error running ECS task:', error);
-        res.status(500).json({ error: 'Failed to start build process' });
-    });
-});
+app.use(express.json());
 
 async function initKafkaConsumer() {
     await consumer.connect();
@@ -198,7 +72,6 @@ async function initKafkaConsumer() {
                 } catch (error) {
                     console.error('Error inserting log event:', error);
                 }
-                
             }
         }
     })
