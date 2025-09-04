@@ -13,9 +13,7 @@ export type Deployment = {
 export type Project = {
   id : string;
   name: string;
-  gitRepo: string;
-  active: boolean;
-  URL: string;
+  gitUrl: string;
 }
 
 export const projectColumns: ColumnDef<Project>[] = [
@@ -24,14 +22,14 @@ export const projectColumns: ColumnDef<Project>[] = [
     header: "Name",
   },
   {
-    accessorKey: "gitRepo",
-    header: "Git Repo",
+    accessorKey: "gitUrl",
+    header: "Git Repository",
   }
 ];
 
 export const deploymentColumns: ColumnDef<Deployment>[] = [
   {
-    accessorKey: "project",
+    accessorKey: "project.name",
     header: "Project",
   },
   {
@@ -39,10 +37,10 @@ export const deploymentColumns: ColumnDef<Deployment>[] = [
     header: "Status",
   },
   {
-    accessorKey: "timeStamp",
+    accessorKey: "createdAt",
     header: "TimeStamp",
     cell: ({ row }) => {
-      const date = new Date(row.getValue("timeStamp"));
+      const date = new Date(row.getValue("createdAt"));
       return <span>{date.toLocaleString()}</span>;
     },
   },

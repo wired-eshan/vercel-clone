@@ -9,6 +9,7 @@ const { v4 : uuidv4 } = require('uuid');
 
 const auth = require('./routes/api/auth');
 const project = require('./routes/api/project');
+const deployment = require('./routes/api/deployment');
 
 const app = express();
 const PORT = 9000;
@@ -42,7 +43,8 @@ app.use(cors({
 }));
 app.use(cookieParser()); // Middleware to parse cookies
 app.use('/v1/auth', auth);
-app.use('/v1/project', project);
+app.use('/v1/projects', project);
+app.use('/v1/deployments', deployment);
 
 app.use(express.json());
 

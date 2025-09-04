@@ -14,6 +14,9 @@ router.get('/', authMiddleware, async (req, res) => {
                 userId: req.user.userId
             }
         },
+        include: {
+            project: true
+        },
         orderBy: {
             createdAt: 'desc'
         }
@@ -26,6 +29,15 @@ router.get('/:deploymentId', authMiddleware, async (req, res) => {
     const { deploymentId } = req.params;
 
     //#TODO: fetch logs from clickhouse given deploymentId
+});
+
+router.delete('/:deploymentId', authMiddleware, async(req, res) => {
+    await prisma.deployment.delete({
+        where: {
+            deploymentId: req.params.deploymentId
+        }
+    });
+    //#TODO: delete deployment logs from clickhouse DB
 });
 
 module.exports = router;

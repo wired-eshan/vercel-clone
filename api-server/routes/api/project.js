@@ -5,7 +5,7 @@ const { authMiddleware } = require('../../middlewares/auth');
 const { generateSlug } = require('random-word-slugs');
 const { ECSClient, RunTaskCommand } = require('@aws-sdk/client-ecs');
 const { z } = require('zod');
-const { PrismaClient } = require('./generated/prisma');
+const { PrismaClient } = require('../../generated/prisma');
 
 const dotenv = require('dotenv');
 dotenv.config();
@@ -133,6 +133,14 @@ router.post('/upload', authMiddleware, async (req, res) => {
     });
 });
 
+router.get('/', authMiddleware, async (req, res) => {
+    const projects = await prisma.project.findMany({
+        where: { userId: req.user.userId },
+        orderBy: { createdAt: 'desc' }
+    });
+    res.json({ status: 'success', data: { projects } });
+});
+
 router.get('/:projectId/deployments', authMiddleware, async (req, res) => {
     const { projectId } = req.params;
 
@@ -165,6 +173,8 @@ router.delete('/:projectId', authMiddleware, async (req, res) => {
     await prisma.deployment.deleteMany({
         where: { projectId: project.id }
     });
+
+    //#TODO: delete all depoyments logs from clickhouse DB with deploymentIds
 
     //delete the project
     await prisma.project.delete({

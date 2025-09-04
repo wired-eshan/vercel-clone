@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from "react";
-import axios from "axios";
+import authApi from "../api/resources/auth"
+import axiosClient from "@/api/axiosClient";
 
 type AuthContextType = {
     user: any;
@@ -9,8 +10,6 @@ type AuthContextType = {
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-axios.defaults.withCredentials = true; // Enable sending cookies with requests
 
 export const AuthProvider: React.FC<{ children: ReactNode}> = ({ children }) => {
     const [user, setUser] = useState(null);
@@ -23,7 +22,7 @@ export const AuthProvider: React.FC<{ children: ReactNode}> = ({ children }) => 
 
     const checkAuthStatus = async () => {
         try {
-            const response = await axios.get('http://localhost:9000/v1/auth/authenticate');
+            const response = await authApi.checkAuthStatus();
             console.log("Auth status response:", response.data);
             if (response.data.authenticated) {
                 setUser(response.data.user);
@@ -41,7 +40,7 @@ export const AuthProvider: React.FC<{ children: ReactNode}> = ({ children }) => 
 
     const login = async (email: string, password: string) => {
         try {
-            const response = await axios.post('http://localhost:9000/v1/auth/login', { email, password });
+            const response = await axiosClient.post('/v1/auth/login', { email, password });
 
             console.log("Login response in auth context:", response.data);
             if (response.data.status == "success" ) {
@@ -58,7 +57,7 @@ export const AuthProvider: React.FC<{ children: ReactNode}> = ({ children }) => 
 
     const logout = async () => {
         try {
-            const response = await axios.post('http://localhost:9000/v1/auth/logout');
+            const response = await axiosClient.post('/v1/auth/logout');
             
             if (response.data.success) {
                 setIsLoggedIn(false);
