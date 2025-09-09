@@ -1,11 +1,21 @@
 const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('../../generated/prisma');
+const { createClient } = require('@clickhouse/client');
+const path = require('path');
 
 const { authMiddleware } = require('../../middlewares/auth');
 
 const prisma = new PrismaClient();
-router.use(authMiddleware);
+
+const client = createClient({
+    host: process.env.CLICKHOUSE_HOST,
+    username: 'avnadmin',
+    password: process.env.CLICKHOUSE_PASSWORD,
+    database: 'default'
+});
+
+//router.use(authMiddleware);
 
 router.get('/', authMiddleware, async (req, res) => {
     const deployments = await prisma.deployment.findMany({
@@ -25,8 +35,29 @@ router.get('/', authMiddleware, async (req, res) => {
     res.json({ status: 'success', data: { deployments } });
 });
 
-router.get('/:deploymentId', authMiddleware, async (req, res) => {
-    const { deploymentId } = req.params;
+router.get('/logs', async (req, res) => {
+    const { deploymentId, since } = req.query;
+
+    if(!deploymentId) {
+        return res.status(400).json({ status: 'error', message: 'deploymentId is required' });
+    }
+
+    const query = `SELECT log, event_id FROM log_events WHERE deployment_id = {deployment_id:String} AND timestamp >= parseDateTimeBestEffort({since:String}) ORDER BY timestamp ASC`;
+
+    const data = await client.query({
+        query : query,
+        query_params: {
+            deployment_id: deploymentId,
+            since: since
+        },
+        format: 'JSON'
+    });
+
+    const rows = await data.json();
+
+    console.log("clickhouse rows: ", rows)
+    
+    res.json(rows);
 
     //#TODO: fetch logs from clickhouse given deploymentId
 });

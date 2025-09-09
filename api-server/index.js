@@ -34,7 +34,7 @@ const client = createClient({
     database: 'default'
 });
 
-//const consumer = kafka.consumer({ groupId: 'api-server-logs-consumer' });
+const consumer = kafka.consumer({ groupId: 'api-server-logs-consumer' });
 
 app.use(express.json());
 app.use(cors({
@@ -79,7 +79,7 @@ async function initKafkaConsumer() {
     })
 }
 
-//initKafkaConsumer();
+initKafkaConsumer();
 
 app.listen(PORT, () => {
     console.log(`API server is running on port ${PORT}`);

@@ -32,7 +32,7 @@ const kafka = new Kafka({
   }
 });
 
-//const producer = kafka.producer();
+const producer = kafka.producer();
 
 async function publishLog(log) {
   console.log("Publishing log:", log);
@@ -40,6 +40,7 @@ async function publishLog(log) {
 }
 
 async function init() {
+  //#TODO: Verify using head bucket command if S3 bucket exists
   await producer.connect();
 
   console.log("Executing script.js...");
@@ -101,7 +102,10 @@ async function init() {
           .catch(async (error) => {
             console.error(`Error uploading ${filePath}:`, error);
             await publishLog(`Error uploading ${filePath}: ${error.message}`);
+            //#TODO: stop upload and update status as failed if any file fails to upload
           });
+
+          //#TODO: verify if folder is created in S3
       }
     } catch (error) {
         console.error('Error reading dist folder:', error);

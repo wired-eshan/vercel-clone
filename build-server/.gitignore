@@ -2,6 +2,10 @@ node_modules
 # Keep environment variables out of version control
 .env
 
+kafka.pem
+
+/prisma/ca.pem
+
 /generated/prisma
 
 /generated/prisma

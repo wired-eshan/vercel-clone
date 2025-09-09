@@ -1,7 +1,11 @@
 import axiosClient from '../axiosClient';
 
 interface createProjectData {
-    URL: string;
+    gitUrl: string;
+}
+
+interface uploadProjectData {
+    projectId: string
 }
 
 const projectsApi = {
@@ -10,6 +14,9 @@ const projectsApi = {
     },
     create: (data : createProjectData) => {
         return axiosClient.post('/v1/projects/create', data);
+    },
+    upload: (data : uploadProjectData) => {
+        return axiosClient.post('v1/projects/upload', data);
     }
 };
 
