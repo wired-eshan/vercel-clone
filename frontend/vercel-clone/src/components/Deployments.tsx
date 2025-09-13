@@ -41,7 +41,7 @@ const Deployments: React.FC = () => {
     }, [])
 
     const handleRowClick = (row: Deployment) => {
-        navigate(`/deployments/${row.id}/logs`);
+        navigate(`/deployments/${row.id}/logs`, {state: row.project});
     };
 
     return (

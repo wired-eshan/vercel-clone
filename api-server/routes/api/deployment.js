@@ -37,12 +37,12 @@ router.get('/', authMiddleware, async (req, res) => {
 
 router.get('/logs', async (req, res) => {
     const { deploymentId, since } = req.query;
-
+    console.log("fetch logs API:". deploymentId, since);
     if(!deploymentId) {
         return res.status(400).json({ status: 'error', message: 'deploymentId is required' });
     }
 
-    const query = `SELECT log, event_id FROM log_events WHERE deployment_id = {deployment_id:String} AND timestamp >= parseDateTimeBestEffort({since:String}) ORDER BY timestamp ASC`;
+    const query = `SELECT log, event_id, timestamp FROM log_events WHERE deployment_id = {deployment_id:String} AND timestamp >= parseDateTimeBestEffort({since:String}) ORDER BY timestamp ASC`;
 
     const data = await client.query({
         query : query,
@@ -58,8 +58,19 @@ router.get('/logs', async (req, res) => {
     console.log("clickhouse rows: ", rows)
     
     res.json(rows);
+});
 
-    //#TODO: fetch logs from clickhouse given deploymentId
+router.get('/status/:deploymentId', async (req, res) => {
+    const response = await prisma.deployment.findFirst({
+        where : {
+            id: req.params.deploymentId
+        },
+        select: {
+            status: true
+        }
+    });
+
+    res.json(response);
 });
 
 router.delete('/:deploymentId', authMiddleware, async(req, res) => {
