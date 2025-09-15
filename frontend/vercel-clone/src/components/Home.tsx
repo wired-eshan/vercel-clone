@@ -3,7 +3,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { Input } from "@/components/ui/input"
 import { Button } from '@/components/ui/button';
 import projectsApi from '../api/resources/projects';
-import { type AxiosResponse } from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 interface project {
   id: string,
@@ -16,6 +16,7 @@ interface project {
 
 const Home : React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const [githubUrl, setGithubUrl] = useState("");
 
@@ -26,7 +27,10 @@ const Home : React.FC = () => {
   const handleSubmit = async (e : React.MouseEvent<HTMLButtonElement>) => {
     try{
       const res = await projectsApi.create({ gitUrl: githubUrl });
-      await projectsApi.upload({projectId: res.data.data.project.id});
+      const deployment = await projectsApi.upload({projectId: res.data.data.project.id});
+      console.log("/upload api response: ", deployment);
+      const deploymentId = deployment.data.data.deploymentId;
+      navigate(`/deployments/${deploymentId}/logs`, {state: res.data.data});
     } catch (e) {
       console.log("error deploying project: ", e);
     }

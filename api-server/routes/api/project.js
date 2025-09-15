@@ -169,14 +169,10 @@ router.delete('/:projectId', authMiddleware, async (req, res) => {
         return res.status(404).json({ error: 'Project not found' });
     }
 
-    //delete all deployments associated with the project
     await prisma.deployment.deleteMany({
         where: { projectId: project.id }
     });
 
-    //#TODO: delete all depoyments logs from clickhouse DB with deploymentIds
-
-    //delete the project
     await prisma.project.delete({
         where: { id: project.id }
     });

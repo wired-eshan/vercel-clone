@@ -17,6 +17,9 @@ const projectsApi = {
     },
     upload: (data : uploadProjectData) => {
         return axiosClient.post('v1/projects/upload', data);
+    },
+    deleteProject: (projectId: string) => {
+        return axiosClient.delete(`/v1/projects/${projectId}`);
     }
 };
 

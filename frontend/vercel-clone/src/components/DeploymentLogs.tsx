@@ -1,8 +1,22 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useParams, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import deploymentsApi from "../api/resources/deployments";
+import { Trash2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 const DeploymentLogs: React.FC = () => {
+  const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const deploymentId = id || "";
 
@@ -13,6 +27,8 @@ const DeploymentLogs: React.FC = () => {
   const [deploymentStatus, setDeploymentStatus] = useState("PENDING");
   const lastTimeStampRef = useRef("0000-00-00 00:00:00");
   const pollingInterval = 2000;
+
+  const logContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchLogs = async () => {
@@ -64,9 +80,60 @@ const DeploymentLogs: React.FC = () => {
     };
   }, [deploymentId, deploymentStatus]);
 
+  useEffect(() => {
+    if (logContainerRef.current) {
+      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+    }
+  }, [logs]);
+
+  const deleteDeployment = async () => {
+    try {
+      await deploymentsApi.deleteDeployment(deploymentId);
+      navigate(-1);
+    } catch (err) {
+      console.log("Error delete deployment logs: ", err);
+    }
+  };
+
   return (
     <>
-      <h3 className="text-2xl font-bold mb-4">Deployment Logs</h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-2xl font-bold">Deployment Logs</h3>
+
+        <Dialog>
+          <DialogTrigger>
+            <Trash2 color="#d23737" className="mx-8 cursor-pointer" />
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Do you want to delete deployment logs?</DialogTitle>
+              <DialogDescription>
+                This action cannot be undone. This will permanently delete logs
+                for this deployment.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                className="cursor-pointer"
+                type="submit"
+                variant={"destructive"}
+                onClick={deleteDeployment}
+              >
+                Delete
+              </Button>
+              <DialogClose asChild>
+                <Button
+                  className="cursor-pointer"
+                  type="button"
+                  variant={"secondary"}
+                >
+                  Cancel
+                </Button>
+              </DialogClose>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
       <h1 className="text-xl mb-4 font-semibold ">{projectData.name}</h1>
       <div className="mb-4">
         <p className="text-gray-400 text-sm">Github Repository</p>
@@ -77,10 +144,14 @@ const DeploymentLogs: React.FC = () => {
         <p className="cursor-pointer underline">{projectData.subDomain}</p>
       </div>
 
-      <div className="h-100 overflow-y-auto p-4 bg-black">
+      <div
+        ref={logContainerRef}
+        className="h-100 overflow-y-auto p-4 bg-black border border-gray-700"
+      >
         {logs.map((log, idx) => (
           <div key={idx}>
-            [{log.timestamp}] {log.log}
+            <span className="text-gray-600">[{log.timestamp}] </span>
+            <span className="text-gray-400"> {log.log}</span>
           </div>
         ))}
       </div>
