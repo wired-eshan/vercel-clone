@@ -6,6 +6,7 @@ const { generateSlug } = require('random-word-slugs');
 const { ECSClient, RunTaskCommand } = require('@aws-sdk/client-ecs');
 const { z } = require('zod');
 const { PrismaClient } = require('../../generated/prisma');
+const { createClient } = require("@clickhouse/client");
 
 const dotenv = require('dotenv');
 dotenv.config();
@@ -25,7 +26,14 @@ const ecsClient = new ECSClient({
 const ecsConfig = {
     cluster: process.env.AWS_ECS_CLUSTER,
     task: process.env.AWS_ECS_TASK
-}
+};
+
+const client = createClient({
+  host: process.env.CLICKHOUSE_HOST,
+  username: "avnadmin",
+  password: process.env.CLICKHOUSE_PASSWORD,
+  database: "default",
+});
 
 router.post('/create', authMiddleware, async (req, res) => {
     const schema = z.object({
@@ -162,19 +170,33 @@ router.get('/:projectId/deployments', authMiddleware, async (req, res) => {
 
 router.delete('/:projectId', authMiddleware, async (req, res) => {
     const { projectId } = req.params;
-    const project = await prisma.project.findUnique({
-        where: { id: projectId }
+
+    const deployments = await prisma.deployment.findMany({
+        where: {
+            projectId: projectId
+        },
+        select: {
+            id: true
+        }
     });
-    if (!project) {
-        return res.status(404).json({ error: 'Project not found' });
+    const deploymentIds = deployments.map(deployment => deployment.id);
+    // Delete associated log events from ClickHouse
+    if (deploymentIds.length > 0) {
+        const deleteQuery = `ALTER TABLE log_events DELETE WHERE deployment_id IN ({deployment_ids:Array(String)})`;
+        await client.query({
+            query: deleteQuery,
+            query_params: {
+                deployment_ids: deploymentIds
+            }
+        });
     }
 
     await prisma.deployment.deleteMany({
-        where: { projectId: project.id }
+        where: { projectId: projectId }
     });
 
     await prisma.project.delete({
-        where: { id: project.id }
+        where: { id: projectId }
     });
 
     res.json({ status: 'success', message: 'Project deleted successfully' });
