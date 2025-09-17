@@ -1,7 +1,11 @@
 const { exec } = require("child_process");
 const path = require("path");
 const fs = require("fs");
-const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+const {
+  S3Client,
+  PutObjectCommand,
+  HeadBucketCommand,
+} = require("@aws-sdk/client-s3");
 const mime = require("mime-types");
 const { Kafka } = require("kafkajs");
 const { PrismaClient } = require("./generated/prisma");
@@ -36,17 +40,36 @@ const producer = kafka.producer();
 
 async function publishLog(log) {
   console.log("Publishing log:", log);
-  await producer.send({topic: `container-logs`, messages: [{key: 'log', value: JSON.stringify({PROJECT_ID, DEPLOYMENT_ID, log})}]})
+  const timestamp = new Date();
+  await producer.send({
+    topic: `container-logs`,
+    messages: [
+      { key: "log", value: JSON.stringify({ PROJECT_ID, DEPLOYMENT_ID, log, timestamp}) },
+    ],
+  });
 }
 
 async function init() {
-  //#TODO: Verify using head bucket command if S3 bucket exists
   await producer.connect();
 
-  console.log("Executing script.js...");
-  await publishLog("Build started...");
-
-  const outputPath = path.join(__dirname, "output");
+  try {
+    const command = new HeadBucketCommand({ Bucket: "vercel-like-project" });
+    const response = await s3Client.send(command);
+    console.log("Bucket exists and is accessible: ", response);
+    await publishLog(`Prepared to build and upload files to S3.`);
+  } catch (error) {
+    await publishLog(`Error accessing S3 bucket: ${error}`);
+    await publishLog(`Build failed.`);
+    await prisma.deployment.update({
+      where: {
+        id: DEPLOYMENT_ID,
+      },
+      data: {
+        status: "FAILED",
+      },
+    });
+    process.exit(0);
+  }
 
   await prisma.deployment.update({
     where: {
@@ -57,6 +80,11 @@ async function init() {
     },
   });
 
+  console.log("Executing script.js...");
+  await publishLog("Build started...");
+
+  const outputPath = path.join(__dirname, "output");
+
   const t = exec(`cd ${outputPath} && npm install && npm run build`);
   t.stdout.on("data", async (data) => {
     console.log(`stdout: ${data}`);
@@ -66,6 +94,7 @@ async function init() {
   t.stdout.on("error", async (data) => {
     console.error(`stderr: ${data}`);
     await publishLog(data.toString());
+    await publishLog(`Build failed.`);
   });
 
   t.on("close", async function () {
@@ -103,31 +132,41 @@ async function init() {
             console.error(`Error uploading ${filePath}:`, error);
             await publishLog(`Error uploading ${filePath}: ${error.message}`);
             //#TODO: stop upload and update status as failed if any file fails to upload
+            await prisma.deployment.update({
+              where: {
+                id: DEPLOYMENT_ID,
+              },
+              data: {
+                status: "FAILED",
+              },
+            });
+            process.exit(0);
           });
-
-          //#TODO: verify if folder is created in S3
       }
+      //#TODO: verify if folder is created in S3
+      await publishLog(`Done uploading build files to S3.`);
+      await prisma.deployment.update({
+        where: {
+          id: DEPLOYMENT_ID,
+        },
+        data: {
+          status: "SUCCESSFUL",
+        },
+      });
     } catch (error) {
-        console.error('Error reading dist folder:', error);
-        await publishLog(`Error reading dist folder: ${error.message}`);
-        await prisma.deployment.update({
-            where: {
-              id: DEPLOYMENT_ID,
-            },
-            data: {
-              status: "FAILED",
-            },
-          });
+      console.error("Error reading dist folder:", error);
+      await publishLog(`Build failed.`);
+      await publishLog(`Error reading dist folder: ${error.message}`);
+      await prisma.deployment.update({
+        where: {
+          id: DEPLOYMENT_ID,
+        },
+        data: {
+          status: "FAILED",
+        },
+      });
     } finally {
-        await prisma.deployment.update({
-            where: {
-              id: DEPLOYMENT_ID,
-            },
-            data: {
-              status: "SUCCESSFUL",
-            },
-          });
-        await publishLog(`Done uploading build files to S3.`);
+      await producer.disconnect();
     }
 
     process.exit(0);
