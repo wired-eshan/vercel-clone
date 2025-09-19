@@ -142,6 +142,7 @@ router.post('/upload', authMiddleware, async (req, res) => {
 });
 
 router.get('/', authMiddleware, async (req, res) => {
+    console.log("req: ", req.ip);
     const projects = await prisma.project.findMany({
         where: { userId: req.user.userId },
         orderBy: { createdAt: 'desc' }
