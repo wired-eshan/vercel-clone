@@ -19,7 +19,7 @@ const Sidebar: React.FC = () => {
         <Link to="/" className="block hover:text-gray-300">Home</Link>
         <Link to="/projects" className="block hover:text-gray-300">Projects</Link>
         <Link to="/deployments" className="block hover:text-gray-300">Deployments</Link>
-
+        <Link to="/analytics" className="block hover:text-gray-300">Analytics</Link>
       </nav>
       <button
         onClick={handleLogout}

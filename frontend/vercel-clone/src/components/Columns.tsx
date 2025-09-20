@@ -16,6 +16,13 @@ export type Project = {
   gitUrl: string;
 }
 
+export type ProjectAnalytics = {
+  id : string;
+  name: string;
+  gitUrl: string;
+  visits: number;
+}
+
 export const projectColumns: ColumnDef<Project>[] = [
   {
     accessorKey: "name",
@@ -24,6 +31,21 @@ export const projectColumns: ColumnDef<Project>[] = [
   {
     accessorKey: "gitUrl",
     header: "Git Repository",
+  }
+];
+
+export const projectAnalyticsColumns: ColumnDef<ProjectAnalytics>[] = [
+  {
+    accessorKey: "name",
+    header: "Name",
+  },
+  {
+    accessorKey: "gitUrl",
+    header: "Git Repository",
+  },
+  {
+    accessorKey: "visits",
+    header: "visits"
   }
 ];
 

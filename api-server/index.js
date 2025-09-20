@@ -100,7 +100,7 @@ async function initKafkaConsumer() {
     })
 }
 
-initKafkaConsumer();
+//initKafkaConsumer();
 
 app.listen(PORT, () => {
     console.log(`API server is running on port ${PORT}`);

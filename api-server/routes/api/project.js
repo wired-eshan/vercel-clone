@@ -142,7 +142,6 @@ router.post('/upload', authMiddleware, async (req, res) => {
 });
 
 router.get('/', authMiddleware, async (req, res) => {
-    console.log("req: ", req.ip);
     const projects = await prisma.project.findMany({
         where: { userId: req.user.userId },
         orderBy: { createdAt: 'desc' }
@@ -201,6 +200,18 @@ router.delete('/:projectId', authMiddleware, async (req, res) => {
     });
 
     res.json({ status: 'success', message: 'Project deleted successfully' });
+});
+
+router.get('/analytics', authMiddleware, async (req, res) => {
+    const projects = await prisma.project.findMany({
+        where: {
+            userId: req.user.userId
+        },
+        include: {
+            Analytics: true
+        }
+    });
+    res.status(200).json({projects: projects});
 });
 
 module.exports = router;

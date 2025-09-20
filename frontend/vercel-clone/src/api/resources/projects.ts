@@ -20,6 +20,9 @@ const projectsApi = {
     },
     deleteProject: (projectId: string) => {
         return axiosClient.delete(`/v1/projects/${projectId}`);
+    },
+    getAnalytics: () => {
+        return axiosClient.get(`/v1/projects/analytics`);
     }
 };
 
