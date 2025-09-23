@@ -11,7 +11,7 @@ const { createClient } = require("@clickhouse/client");
 const dotenv = require('dotenv');
 dotenv.config();
 
-router.use(authMiddleware);
+//router.use(authMiddleware);
 
 const prisma = new PrismaClient();
 
@@ -149,6 +149,16 @@ router.get('/', authMiddleware, async (req, res) => {
     res.json({ status: 'success', data: { projects } });
 });
 
+router.get('/:projectId', authMiddleware, async (req, res) => {
+    const { projectId } = req.params;
+    const project = await prisma.project.findFirst({
+        where: {
+            id: projectId
+        }
+    });
+    res.status(200).json({project: project});
+});
+
 router.get('/:projectId/deployments', authMiddleware, async (req, res) => {
     const { projectId } = req.params;
 
@@ -212,6 +222,40 @@ router.get('/analytics', authMiddleware, async (req, res) => {
         }
     });
     res.status(200).json({projects: projects});
+});
+
+router.get('/visits/:projectId', async (req,res) => {
+    const {projectId} = req.params;
+
+    const visits = await prisma.analytic.count({
+        where:{
+            projectId : projectId
+        }
+    });
+    res.status(200).json({visits: visits});
+});
+
+router.get('/analytics/:projectId', async (req, res) => {
+    const { projectId } = req.params;
+    const startDate = "2025-09-17";
+    const endDate = "2025-09-21";
+
+    const results = await prisma.$queryRaw`
+    SELECT DATE("timestamp") as date, COUNT(*) as count
+    FROM "Analytic"
+    WHERE "projectId" = ${projectId}
+        AND "timestamp" >= ${startDate}::date
+        AND "timestamp" < ${endDate}::date + INTERVAL '1 day'
+    GROUP BY DATE("timestamp")
+    ORDER BY date;
+    `;
+    const normalizedRes = results.map(r => ({
+        date: r.date,
+        count: Number(r.count)
+    }));
+
+    console.log("anlaytics: ", normalizedRes);
+    res.json(normalizedRes);
 });
 
 module.exports = router;

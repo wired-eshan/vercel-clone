@@ -16,7 +16,7 @@ import Deployments from "./components/Deployments";
 import DeploymentLogs from "./components/DeploymentLogs";
 import ProjectDetails from "./components/ProjectDetails";
 import Analytics from "./components/Analytics";
-//import ProjectAnalytics from "./components/ProjectAnalytics";
+import ProjectAnalytics from "./components/ProjectAnalytics";
 
 function App() {
   return (
@@ -32,7 +32,7 @@ function App() {
             <Route path="/deployments/:id/logs" element={<DeploymentLogs />} />
             <Route path="/project/:id" element={<ProjectDetails />} />
             <Route path="/analytics/" element={<Analytics />} />
-            {/* <Route path="/analytics/:id" element={<ProjectAnalytics />} /> */}
+            <Route path="/analytics/:id" element={<ProjectAnalytics />} />
           </Route>
           <Route path="/" element={<Navigate to="/home" replace />} />
         </Routes>

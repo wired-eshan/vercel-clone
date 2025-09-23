@@ -34,7 +34,7 @@ const Analytics: React.FC = () => {
     }, [])
 
     const handleRowClick = (row: ProjectAnalytics) => {
-        navigate(`/analytics/${row.id}`);
+        navigate(`/analytics/${row.id}`, {state: row});
     };
 
     return (
