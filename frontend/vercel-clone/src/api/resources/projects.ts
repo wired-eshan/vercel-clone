@@ -1,3 +1,4 @@
+import type { AxiosRequestConfig } from 'axios';
 import axiosClient from '../axiosClient';
 
 interface createProjectData {
@@ -6,6 +7,11 @@ interface createProjectData {
 
 interface uploadProjectData {
     projectId: string
+}
+
+interface getProjectAnalyticsData {
+    startDateString: string | undefined,
+    endDateString: string | undefined
 }
 
 const projectsApi = {
@@ -23,6 +29,9 @@ const projectsApi = {
     },
     getAnalytics: () => {
         return axiosClient.get(`/v1/projects/analytics`);
+    },
+    getProjectAnalytics: (projectId: string, data : getProjectAnalyticsData) => {
+        return axiosClient.post(`/v1/projects/analytics/${projectId}`, data);
     }
 };
 

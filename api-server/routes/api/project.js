@@ -149,16 +149,6 @@ router.get('/', authMiddleware, async (req, res) => {
     res.json({ status: 'success', data: { projects } });
 });
 
-router.get('/:projectId', authMiddleware, async (req, res) => {
-    const { projectId } = req.params;
-    const project = await prisma.project.findFirst({
-        where: {
-            id: projectId
-        }
-    });
-    res.status(200).json({project: project});
-});
-
 router.get('/:projectId/deployments', authMiddleware, async (req, res) => {
     const { projectId } = req.params;
 
@@ -235,10 +225,11 @@ router.get('/visits/:projectId', async (req,res) => {
     res.status(200).json({visits: visits});
 });
 
-router.get('/analytics/:projectId', async (req, res) => {
+router.post('/analytics/:projectId', async (req, res) => {
     const { projectId } = req.params;
-    const startDate = "2025-09-17";
-    const endDate = "2025-09-21";
+    console.log(req);
+    const startDate = req.body.startDateString;
+    const endDate = req.body.endDateString;
 
     const results = await prisma.$queryRaw`
     SELECT DATE("timestamp") as date, COUNT(*) as count
@@ -250,12 +241,22 @@ router.get('/analytics/:projectId', async (req, res) => {
     ORDER BY date;
     `;
     const normalizedRes = results.map(r => ({
-        date: r.date,
-        count: Number(r.count)
+        date: r.date.toLocaleDateString('en-CA'),
+        visits: Number(r.count)
     }));
 
     console.log("anlaytics: ", normalizedRes);
     res.json(normalizedRes);
+});
+
+router.get('/:projectId', authMiddleware, async (req, res) => {
+    const { projectId } = req.params;
+    const project = await prisma.project.findFirst({
+        where: {
+            id: projectId
+        }
+    });
+    res.status(200).json({project: project});
 });
 
 module.exports = router;

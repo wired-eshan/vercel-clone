@@ -13,7 +13,7 @@ const Analytics: React.FC = () => {
         const fetchProjects = async () => {
             try {
                 const response = await projectsApi.getAnalytics();
-                console.log("Fetched projects:", response.data.projects);
+                console.log("Fetched projects:", response.data);
                 const projectsList = response.data.projects;
 
                 if(projectsList && projectsList.length > 0) {
