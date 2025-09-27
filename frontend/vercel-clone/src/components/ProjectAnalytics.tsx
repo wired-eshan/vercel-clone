@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import {
   LineChart,
   Line,
@@ -20,52 +20,88 @@ import {
 } from "@/components/ui/popover";
 import { ChevronDownIcon } from "lucide-react";
 import projectsApi from "../api/resources/projects";
+import useApi from "@/hooks/useApi";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const ProjectAnalytics: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const projectId = id || "";
+
   const pageState = useLocation();
-  const projectData = pageState.state;
   const todaysDate = new Date();
   const initalStartDate = new Date();
   initalStartDate.setDate(initalStartDate.getDate() - 7);
+
+  const {
+    execute: getProject,
+    data: projectData,
+    error: fetchProjectError,
+    loading: loadingProject,
+  } = useApi(projectsApi.getProjectById, { params: projectId });
+
+  const [project, setProject] = useState(pageState.state);
 
   const [startDateOpen, setStartDateOpen] = useState(false);
   const [startDate, setStartDate] = useState<Date | undefined>(initalStartDate);
   const [endDateOpen, setEndDateOpen] = useState(false);
   const [endDate, setEndDate] = useState<Date | undefined>(todaysDate);
   const [data, setData] = useState([]);
-  const [error, setError] = useState<string | null>();
+  const [error, setError] = useState<any>();
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
 
   useEffect(() => {
-    if (startDate && endDate && (startDate > endDate)) {
-        setError("Inapproriate date range. End date should be greater than start date.")
-        return;
+    console.log("pagestate", pageState);
+    if (!pageState.state) {
+      getProject(projectId);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (projectData) {
+      setProject(projectData.data.project);
+    }
+  }, [projectData]);
+
+  useEffect(() => {
+    if (startDate && endDate && startDate > endDate) {
+      setError(
+        "Inapproriate date range. End date should be greater than start date."
+      );
+      return;
     }
     async function getAnalytics() {
-      const startDateString = startDate?.toLocaleDateString("en-CA");
-      const endDateString = endDate?.toLocaleDateString("en-CA");
-      const response = await projectsApi.getProjectAnalytics(projectData.id, {
-        startDateString: startDateString,
-        endDateString: endDateString,
-      });
-      console.log(response);
-      setData(response.data);
-      setError(null);
+      try {
+        setLoadingAnalytics(true);
+        const startDateString = startDate?.toLocaleDateString("en-CA");
+        const endDateString = endDate?.toLocaleDateString("en-CA");
+        const response = await projectsApi.getProjectAnalytics(project.id, {
+          startDateString: startDateString,
+          endDateString: endDateString,
+        });
+        setData(response.data);
+        setError(null);
+      } catch (err) {
+        console.log("Error fetching analytics: ", err);
+        setError(err);
+      } finally {
+        setLoadingAnalytics(false);
+      }
     }
     getAnalytics();
-  }, [startDate, endDate]);
+  }, [startDate, endDate, project]);
 
   return (
     <div className="pb-2 px-2 mb-4">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-3xl font-bold ">{projectData.name}</h1>
+        <h1 className="text-3xl font-bold ">{project?.name}</h1>
       </div>
       <div className="mb-4">
         <p className="text-gray-400 text-sm">Github Repository</p>
-        <p className="cursor-pointer underline">{projectData.gitUrl}</p>
+        <p className="cursor-pointer underline">{project?.gitUrl}</p>
       </div>
       <div className="mb-8">
         <p className="text-gray-400 text-sm">Project Domain</p>
-        <p className="cursor-pointer underline">{projectData.subDomain}</p>
+        <p className="cursor-pointer underline">{project?.subDomain}</p>
       </div>
       <div className="flex justify-end">
         <div className="flex flex-col gap-3 my-4">
@@ -139,10 +175,9 @@ const ProjectAnalytics: React.FC = () => {
         </div>
       </div>
       {error ? (
-        <center>
-            {error}
-        </center>
-        
+        <center>{error}</center>
+      ) : loadingAnalytics ? (
+        <Skeleton className="h-72 w-full rounded-xl" />
       ) : (
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={data}>

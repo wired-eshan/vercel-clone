@@ -63,7 +63,7 @@ router.get("/logs", async (req, res) => {
   res.json(rows);
 });
 
-router.get("/:projectId", async (req, res) => {
+router.get("/project/:projectId", async (req, res) => {
   const deployments = await prisma.deployment.findMany({
     where: {
       projectId: req.params.projectId,
@@ -81,11 +81,27 @@ router.get("/status/:deploymentId", async (req, res) => {
       id: req.params.deploymentId,
     },
     select: {
-      status: true,
+      status: true
     },
   });
 
   res.json(response);
+});
+
+router.get("/:deploymentId", authMiddleware, async (req, res) => {
+  try {
+    const response = await prisma.deployment.findFirst({
+      where: {
+        id: req.params.deploymentId,
+      },
+      include: {
+        project: true
+      }
+    });
+    res.json(response);
+  } catch (err) {
+    console.log("Error fetching deployment: ", err);
+  }
 });
 
 router.delete("/:deploymentId", authMiddleware, async (req, res) => {
@@ -94,7 +110,7 @@ router.delete("/:deploymentId", authMiddleware, async (req, res) => {
     await prisma.deployment.delete({
       where: {
         id: req.params.deploymentId,
-      }
+      },
     });
 
     const query = `ALTER TABLE log_events DELETE WHERE deployment_id = {deploymentId:String}`;

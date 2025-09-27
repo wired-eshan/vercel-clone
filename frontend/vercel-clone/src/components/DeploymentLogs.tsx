@@ -14,21 +14,39 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import useApi from "../hooks/useApi";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const DeploymentLogs: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const deploymentId = id || "";
 
-  const pageState = useLocation();
-  const projectData = pageState.state;
+  const {execute: getDeployment, data: deploymentData, error: getDeploymentError, loading: loadingDeployment} = useApi(deploymentsApi.getDeployment, {params: deploymentId})
 
+  const pageState = useLocation();
+
+  const [project, setProject] = useState(pageState.state);
   const [logs, setLogs] = useState<any[]>([]);
   const [deploymentStatus, setDeploymentStatus] = useState("PENDING");
   const lastTimeStampRef = useRef("0000-00-00 00:00:00");
   const pollingInterval = 2000;
 
   const logContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    console.log("pageState", pageState)
+    if(!pageState.state) {
+      getDeployment(deploymentId);
+    }
+  }, []);
+
+  useEffect(() => {
+    if(deploymentData) {
+      console.log("response deployment: ", deploymentData.data)
+      setProject(deploymentData.data.project);
+    }
+  }, [deploymentData])
 
   useEffect(() => {
     const fetchLogs = async () => {
@@ -134,14 +152,14 @@ const DeploymentLogs: React.FC = () => {
           </DialogContent>
         </Dialog>
       </div>
-      <h1 className="text-xl mb-4 font-semibold ">{projectData.name}</h1>
+      <h1 className="text-xl mb-4 font-semibold ">{project?.name}</h1>
       <div className="mb-4">
         <p className="text-gray-400 text-sm">Github Repository</p>
-        <p className="cursor-pointer underline">{projectData.gitUrl}</p>
+        <p className="cursor-pointer underline">{project?.gitUrl}</p>
       </div>
       <div className="mb-8">
         <p className="text-gray-400 text-sm">Project Domain</p>
-        <p className="cursor-pointer underline">{projectData.subDomain}</p>
+        <p className="cursor-pointer underline">{project?.subDomain}</p>
       </div>
 
       <div

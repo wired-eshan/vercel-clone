@@ -3,6 +3,8 @@ import { deploymentColumns, type Deployment } from "./Columns";
 import { DataTable } from "./Data-table";
 import { useNavigate } from "react-router-dom";
 import deploymentsApi from "../api/resources/deployments";
+import useApi from "../hooks/useApi";
+import { Skeleton } from "@/components/ui/skeleton"
 
 const data : Deployment[] = [
     {
@@ -23,26 +25,37 @@ const data : Deployment[] = [
 
 const Deployments: React.FC = () => {
     const navigate = useNavigate();
+    const {data, error, loading} = useApi(deploymentsApi.getAll, {auto: true});
 
     const [deployments, setDeployments] = useState<Deployment[]>([]);
 
-        useEffect(() => {
-        const fetchProjects = async () => {
-            try {
-                const response = await deploymentsApi.getAll();
-                console.log("Fetched deployments:", response.data.data.deployments);
-                setDeployments(response.data.data.deployments);
-            } catch (error) {
-                console.error("Error fetching projects:", error);
-            }
-        };
-
-        fetchProjects();
-    }, [])
+    useEffect(() => {
+        if(data) {
+            setDeployments(data.data.data.deployments);
+        }
+    }, [data]);
 
     const handleRowClick = (row: Deployment) => {
         navigate(`/deployments/${row.id}/logs`, {state: row.project});
     };
+
+    if(loading) {
+        return (
+            <div>
+                <h1 className="text-3xl mb-4 font-bold ">Deployments</h1>
+                <Skeleton className="h-64 w-full rounded-xl" />
+            </div>
+        )
+    }
+
+    if(error) {
+        return (
+            <div>
+                <h1 className="text-3xl mb-4 font-bold ">Deployments</h1>
+                {error}
+            </div>
+        )
+    }
 
     return (
         <div>

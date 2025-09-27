@@ -10,8 +10,11 @@ const deploymentsApi = {
     getStatus: (deploymentId : string) => {
         return axiosClient.get(`/v1/deployments/status/${deploymentId}`)
     },
+    getDeployment: (deploymentId: string) => {
+        return axiosClient.get(`/v1/deployments/${deploymentId}`);
+    },
     getDeploymentByProjectId: (projectId: string) => {
-        return axiosClient.get(`/v1/deployments/${projectId}`);
+        return axiosClient.get(`/v1/deployments/project/${projectId}`);
     },
     deleteDeployment: (deploymentId : string) => {
         return axiosClient.delete(`/v1/deployments/${deploymentId}`);

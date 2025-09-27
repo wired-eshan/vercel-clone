@@ -3,39 +3,52 @@ import { projectAnalyticsColumns, type ProjectAnalytics } from "./Columns";
 import { DataTable } from "./Data-table";
 import projectsApi from "../api/resources/projects";
 import { useNavigate } from "react-router-dom";
+import useApi from "../hooks/useApi";
+import { Skeleton } from "@/components/ui/skeleton"
 
 const Analytics: React.FC = () => {
     const navigate = useNavigate();
+    const {data, error, loading} = useApi(projectsApi.getAnalytics, {auto: true});
 
     const [projects, setProjects] = useState<ProjectAnalytics[]>([]);
 
     useEffect(() => {
-        const fetchProjects = async () => {
-            try {
-                const response = await projectsApi.getAnalytics();
-                console.log("Fetched projects:", response.data);
-                const projectsList = response.data.projects;
+        if(data) {
+            const projectsList = data.data.projects;
 
-                if(projectsList && projectsList.length > 0) {
-                    const projectAnalytics = projectsList.map((project : any) => ({
-                        ...project,
-                        visits: project.Analytics.length
-                    }));
-                    setProjects(projectAnalytics);
-                } else {
-                    setProjects([]);
-                }
-            } catch (error) {
-                console.error("Error fetching projects:", error);
+            if(projectsList && projectsList.length > 0) {
+                const projectAnalytics = projectsList.map((project : any) => ({
+                    ...project,
+                    visits: project.Analytics.length
+                }));
+                setProjects(projectAnalytics);
+            } else {
+                setProjects([]);
             }
-        };
-
-        fetchProjects();
-    }, [])
+        }
+    }, [data]);
 
     const handleRowClick = (row: ProjectAnalytics) => {
         navigate(`/analytics/${row.id}`, {state: row});
     };
+
+    if(loading) {
+        return (
+            <div>
+                <h1 className="text-3xl mb-4 font-bold ">Project Analytics</h1>
+                <Skeleton className="h-64 w-full rounded-xl" />
+            </div>
+        )
+    }
+
+    if(error) {
+        return (
+            <div>
+                <h1 className="text-3xl mb-4 font-bold ">Project Analytics</h1>
+                {error}
+            </div>
+        )
+    }
 
     return (
         <div>

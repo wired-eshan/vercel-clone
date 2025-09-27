@@ -18,6 +18,9 @@ const projectsApi = {
     getAll: () => {
         return axiosClient.get('/v1/projects');
     },
+    getProjectById : (projectId: string) => {
+        return axiosClient.get(`/v1/projects/${projectId}`);
+    },
     create: (data : createProjectData) => {
         return axiosClient.post('/v1/projects/create', data);
     },
