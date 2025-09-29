@@ -36,7 +36,7 @@ router.get("/", authMiddleware, async (req, res) => {
 });
 
 //#TODO: Deployment status to be sent along with logs
-router.get("/logs", async (req, res) => {
+router.get("/logs", authMiddleware, async (req, res) => {
   const { deploymentId, since } = req.query;
   console.log("fetch logs API:".deploymentId, since);
   if (!deploymentId) {
@@ -63,7 +63,7 @@ router.get("/logs", async (req, res) => {
   res.json(rows);
 });
 
-router.get("/project/:projectId", async (req, res) => {
+router.get("/project/:projectId", authMiddleware, async (req, res) => {
   const deployments = await prisma.deployment.findMany({
     where: {
       projectId: req.params.projectId,

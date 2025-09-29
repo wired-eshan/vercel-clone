@@ -11,7 +11,7 @@ const { createClient } = require("@clickhouse/client");
 const dotenv = require('dotenv');
 dotenv.config();
 
-//router.use(authMiddleware);
+router.use(authMiddleware);
 
 const prisma = new PrismaClient();
 
@@ -143,9 +143,17 @@ router.post('/upload', authMiddleware, async (req, res) => {
 
 router.get('/', authMiddleware, async (req, res) => {
     const projects = await prisma.project.findMany({
-        where: { userId: req.user.userId },
+        where: { 
+            userId: req.user.userId,
+            Deployments: {
+                some: {
+                    status: "SUCCESSFUL"
+                }
+            }
+        },
         orderBy: { createdAt: 'desc' }
     });
+    
     res.json({ status: 'success', data: { projects } });
 });
 
@@ -205,7 +213,12 @@ router.delete('/:projectId', authMiddleware, async (req, res) => {
 router.get('/analytics', authMiddleware, async (req, res) => {
     const projects = await prisma.project.findMany({
         where: {
-            userId: req.user.userId
+            userId: req.user.userId,
+            Deployments: {
+                some: {
+                    status: "SUCCESSFUL"
+                }
+            }
         },
         include: {
             Analytics: true
@@ -214,7 +227,7 @@ router.get('/analytics', authMiddleware, async (req, res) => {
     res.status(200).json({projects: projects});
 });
 
-router.get('/visits/:projectId', async (req,res) => {
+router.get('/visits/:projectId', authMiddleware, async (req,res) => {
     const {projectId} = req.params;
 
     const visits = await prisma.analytic.count({
@@ -225,7 +238,7 @@ router.get('/visits/:projectId', async (req,res) => {
     res.status(200).json({visits: visits});
 });
 
-router.post('/analytics/:projectId', async (req, res) => {
+router.post('/analytics/:projectId', authMiddleware, async (req, res) => {
     const { projectId } = req.params;
     console.log(req);
     const startDate = req.body.startDateString;
