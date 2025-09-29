@@ -18,6 +18,7 @@ import projectsApi from "@/api/resources/projects";
 import deploymentsApi from "../api/resources/deployments";
 import useApi from "../hooks/useApi";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getProjectUrl } from "../utils/getProjectDomain";
 
 const ProjectDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -137,7 +138,7 @@ const ProjectDetails = () => {
 
       <div className="mb-8">
         <p className="text-gray-400 text-sm">Project Domain</p>
-        <p className="cursor-pointer underline">{project?.subDomain}</p>
+        <a href={getProjectUrl(project?.subDomain)} target="_blank" className="cursor-pointer underline">{getProjectUrl(project?.subDomain)}</a>
       </div>
 
       <p className="mb-2">Deployments</p>

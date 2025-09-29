@@ -22,6 +22,7 @@ import { ChevronDownIcon } from "lucide-react";
 import projectsApi from "../api/resources/projects";
 import useApi from "@/hooks/useApi";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getProjectUrl } from "../utils/getProjectDomain";
 
 const ProjectAnalytics: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -101,7 +102,7 @@ const ProjectAnalytics: React.FC = () => {
       </div>
       <div className="mb-8">
         <p className="text-gray-400 text-sm">Project Domain</p>
-        <p className="cursor-pointer underline">{project?.subDomain}</p>
+        <a href={getProjectUrl(project?.subDomain)} target="_blank" className="cursor-pointer underline">{getProjectUrl(project?.subDomain)}</a>
       </div>
       <div className="flex justify-end">
         <div className="flex flex-col gap-3 my-4">

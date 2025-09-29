@@ -65,9 +65,5 @@ export const deploymentColumns: ColumnDef<Deployment>[] = [
       const date = new Date(row.getValue("createdAt"));
       return <span>{date.toLocaleString()}</span>;
     },
-  },
-  {
-    accessorKey: "URL",
-    header: "URL",
-  },
+  }
 ];

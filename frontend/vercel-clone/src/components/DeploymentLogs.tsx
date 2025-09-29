@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import useApi from "../hooks/useApi";
-import { Skeleton } from "@/components/ui/skeleton";
+import { getProjectUrl } from "../utils/getProjectDomain";
 
 const DeploymentLogs: React.FC = () => {
   const navigate = useNavigate();
@@ -157,11 +157,10 @@ const DeploymentLogs: React.FC = () => {
         <p className="text-gray-400 text-sm">Github Repository</p>
         <p className="cursor-pointer underline">{project?.gitUrl}</p>
       </div>
-      <div className="mb-8">
+      {deploymentStatus === "SUCCESSFUL" && (<div className="mb-8">
         <p className="text-gray-400 text-sm">Project Domain</p>
-        <p className="cursor-pointer underline">{project?.subDomain}</p>
-      </div>
-
+        <a href={getProjectUrl(project?.subDomain)} target="_blank" className="cursor-pointer underline">{getProjectUrl(project?.subDomain)}</a>
+      </div>)}
       <div
         ref={logContainerRef}
         className="h-100 overflow-y-auto p-4 bg-black border border-gray-700"
