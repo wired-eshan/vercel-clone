@@ -35,10 +35,9 @@ router.get("/", authMiddleware, async (req, res) => {
   res.json({ status: "success", data: { deployments } });
 });
 
-//#TODO: Deployment status to be sent along with logs
 router.get("/logs", authMiddleware, async (req, res) => {
   const { deploymentId, since } = req.query;
-  console.log("fetch logs API:".deploymentId, since);
+  console.log("fetch logs API:", deploymentId, since);
   if (!deploymentId) {
     return res
       .status(400)

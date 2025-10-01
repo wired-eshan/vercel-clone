@@ -26,7 +26,7 @@ const DeploymentLogs: React.FC = () => {
 
   const pageState = useLocation();
 
-  const [project, setProject] = useState(pageState.state.project);
+  const [project, setProject] = useState(pageState.state);
   const [logs, setLogs] = useState<any[]>([]);
   const [deploymentStatus, setDeploymentStatus] = useState("PENDING");
   const lastTimeStampRef = useRef("0000-00-00 00:00:00");
