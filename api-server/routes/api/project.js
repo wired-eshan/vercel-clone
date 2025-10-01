@@ -144,12 +144,7 @@ router.post('/upload', authMiddleware, async (req, res) => {
 router.get('/', authMiddleware, async (req, res) => {
     const projects = await prisma.project.findMany({
         where: { 
-            userId: req.user.userId,
-            Deployments: {
-                some: {
-                    status: "SUCCESSFUL"
-                }
-            }
+            userId: req.user.userId
         },
         orderBy: { createdAt: 'desc' }
     });
@@ -207,18 +202,15 @@ router.delete('/:projectId', authMiddleware, async (req, res) => {
         where: { id: projectId }
     });
 
+    //#TODO: Delete AWS S3 folder for the project
+
     res.json({ status: 'success', message: 'Project deleted successfully' });
 });
 
 router.get('/analytics', authMiddleware, async (req, res) => {
     const projects = await prisma.project.findMany({
         where: {
-            userId: req.user.userId,
-            Deployments: {
-                some: {
-                    status: "SUCCESSFUL"
-                }
-            }
+            userId: req.user.userId
         },
         include: {
             Analytics: true
