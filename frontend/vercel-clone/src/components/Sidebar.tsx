@@ -15,6 +15,12 @@ const Sidebar: React.FC = () => {
     navigate("/login");
   };
 
+  const handleDeleteProfile = () => {
+    //delete profile logic
+
+    navigate("/login");
+  }
+
   return (
     <aside className="w-64 h-screen bg-black text-white flex flex-col sticky top-0">
       <div className="p-4 text-2xl font-bold border-b border-gray-700">
@@ -34,14 +40,14 @@ const Sidebar: React.FC = () => {
             </button>
           </PopoverTrigger>
           <PopoverContent className="p-0 text-white bg-black">
-            <div className="border cursor-pointer hover:bg-gray-900 pr-4 flex justify-between items-center">
+            <div className="border cursor-pointer hover:bg-red-400 pr-4 flex justify-between items-center">
               <button className="p-4 cursor-pointer">
                 Delete profile
               </button>
               <UserX size={18} />
             </div>
             
-            <div className="border cursor-pointer hover:bg-gray-900 pr-4 flex justify-between items-center">
+            <div className="border cursor-pointer hover:bg-red-400 pr-4 flex justify-between items-center">
               <button className="p-4 cursor-pointer">
                 Logout
               </button>

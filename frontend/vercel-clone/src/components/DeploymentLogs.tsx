@@ -3,26 +3,27 @@ import { useParams, useLocation } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import deploymentsApi from "../api/resources/deployments";
 import { Trash2 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-  DialogClose,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import useApi from "../hooks/useApi";
 import { getProjectUrl } from "../utils/getProjectDomain";
+import Modal from "./Modal";
 
 const DeploymentLogs: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const deploymentId = id || "";
 
-  const {execute: getDeployment, data: deploymentData, error: getDeploymentError, loading: loadingDeployment} = useApi(deploymentsApi.getDeployment, {params: deploymentId})
+  const {
+    execute: getDeployment,
+    data: deploymentData,
+    error: getDeploymentError,
+    loading: loadingDeployment,
+  } = useApi(deploymentsApi.getDeployment, { params: deploymentId });
+
+  const {
+    execute: deleteDeploymentApi,
+    loading: deletingDeployment,
+    error: deleteDeploymentError,
+  } = useApi(deploymentsApi.deleteDeployment);
 
   const pageState = useLocation();
 
@@ -35,18 +36,18 @@ const DeploymentLogs: React.FC = () => {
   const logContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    console.log("pageState", pageState)
-    if(!pageState.state) {
+    console.log("pageState", pageState);
+    if (!pageState.state) {
       getDeployment(deploymentId);
     }
   }, []);
 
   useEffect(() => {
-    if(deploymentData) {
-      console.log("response deployment: ", deploymentData.data)
+    if (deploymentData) {
+      console.log("response deployment: ", deploymentData.data);
       setProject(deploymentData.data.project);
     }
-  }, [deploymentData])
+  }, [deploymentData]);
 
   useEffect(() => {
     const fetchLogs = async () => {
@@ -106,7 +107,7 @@ const DeploymentLogs: React.FC = () => {
 
   const deleteDeployment = async () => {
     try {
-      await deploymentsApi.deleteDeployment(deploymentId);
+      await deleteDeploymentApi(deploymentId);
       navigate(-1);
     } catch (err) {
       console.log("Error delete deployment logs: ", err);
@@ -117,50 +118,34 @@ const DeploymentLogs: React.FC = () => {
     <>
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-2xl font-bold">Deployment Logs</h3>
-
-        <Dialog>
-          <DialogTrigger>
-            <Trash2 color="#d23737" className="mx-8 cursor-pointer" />
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Do you want to delete deployment logs?</DialogTitle>
-              <DialogDescription>
-                This action cannot be undone. This will permanently delete logs
-                for this deployment.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button
-                className="cursor-pointer"
-                type="submit"
-                variant={"destructive"}
-                onClick={deleteDeployment}
-              >
-                Delete
-              </Button>
-              <DialogClose asChild>
-                <Button
-                  className="cursor-pointer"
-                  type="button"
-                  variant={"secondary"}
-                >
-                  Cancel
-                </Button>
-              </DialogClose>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <Modal
+          title="Do you want to delete deployment logs?"
+          description="This action cannot be undone. This will permanently delete logs for this deployment."
+          primaryBtn={deletingDeployment? "Deleting..." : "Delete"}
+          secondaryBtn={"Cancel"}
+          primaryBtnVariant={"destructive"}
+          onConfirm={deleteDeployment}
+        >
+          <Trash2 color="#d23737" className="mx-8 cursor-pointer" />
+        </Modal>
       </div>
       <h1 className="text-xl mb-4 font-semibold ">{project?.name}</h1>
       <div className="mb-4">
         <p className="text-gray-400 text-sm">Github Repository</p>
         <p className="cursor-pointer underline">{project?.gitUrl}</p>
       </div>
-      {deploymentStatus === "SUCCESSFUL" && (<div className="mb-8">
-        <p className="text-gray-400 text-sm">Project Domain</p>
-        <a href={getProjectUrl(project?.subDomain)} target="_blank" className="cursor-pointer underline">{getProjectUrl(project?.subDomain)}</a>
-      </div>)}
+      {deploymentStatus === "SUCCESSFUL" && (
+        <div className="mb-8">
+          <p className="text-gray-400 text-sm">Project Domain</p>
+          <a
+            href={getProjectUrl(project?.subDomain)}
+            target="_blank"
+            className="cursor-pointer underline"
+          >
+            {getProjectUrl(project?.subDomain)}
+          </a>
+        </div>
+      )}
       <div
         ref={logContainerRef}
         className="h-100 overflow-y-auto p-4 bg-black border border-gray-700"
