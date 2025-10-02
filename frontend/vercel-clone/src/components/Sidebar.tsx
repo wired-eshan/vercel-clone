@@ -6,20 +6,45 @@ import {
 } from "@/components/ui/popover";
 import { LogOut, UserX } from "lucide-react";
 import Modal from "./Modal";
+import useApi from "../hooks/useApi";
+import usersApi from "../api/resources/user"
+import authApi from "../api/resources/auth";
+import { useAuth } from "../contexts/AuthContext";
 
 const Sidebar: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
-  const handleLogout = () => {
-    //logout logic here
+  const {
+    execute: logout,
+    error: logoutError,
+    loading: loggingOut
+  } = useApi(authApi.logout);
 
-    navigate("/login");
+  const {
+    execute: deleteProfile,
+    error: deleteError,
+    loading: deletingProfile
+  } = useApi(usersApi.deleteUser);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate(0);
+      navigate("/login");
+    } catch(error) {
+      console.log("Error logging out: ", error);
+    }
   };
 
-  const handleDeleteProfile = () => {
-    //delete profile logic
-
-    navigate("/login");
+  const handleDeleteProfile = async () => {
+    try {
+      await deleteProfile(user.id);
+      navigate(0);
+      navigate("/login");
+    } catch(error) {
+      console.log("Error logging out: ", error);
+    }
   };
 
   return (
@@ -64,7 +89,7 @@ const Sidebar: React.FC = () => {
               <Modal
                 title={`Delete Profile`}
                 description={`This action cannot be undone. Do you want to delete your profile permanently?`}
-                primaryBtn={"Delete"}
+                primaryBtn={deletingProfile? "Deleting..." : "Delete"}
                 primaryBtnVariant={"destructive"}
                 secondaryBtn={"Cancel"}
                 onConfirm={handleDeleteProfile}
@@ -77,7 +102,7 @@ const Sidebar: React.FC = () => {
             <div className="border cursor-pointer hover:bg-red-400 pr-4 flex justify-between items-center">
               <Modal
                 title={"Are you sure you want to logout?"}
-                primaryBtn={"Logout"}
+                primaryBtn={loggingOut ? "Logging out..." : "Logout"}
                 primaryBtnVariant={"destructive"}
                 secondaryBtn={"Cancel"}
                 onConfirm={handleLogout}

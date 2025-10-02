@@ -26,13 +26,18 @@ function App() {
           <Route path="/login" element={<Login />} />
 
           <Route element={<AppLayout />}>
-            <Route path="/home" element={<Home />} />
-            <Route path="/projects" element={<Projects />} />
-            <Route path="/deployments" element={<Deployments />} />
-            <Route path="/deployments/:id/logs" element={<DeploymentLogs />} />
-            <Route path="/project/:id" element={<ProjectDetails />} />
-            <Route path="/analytics/" element={<Analytics />} />
-            <Route path="/analytics/:id" element={<ProjectAnalytics />} />
+            <Route path="/home" element={
+              <ProtectedRoute>
+                <Home />
+              </ProtectedRoute>
+              } 
+            />
+            <Route path="/projects" element={<ProtectedRoute> <Projects /> </ProtectedRoute>} />
+            <Route path="/deployments" element={<ProtectedRoute> <Deployments /> </ProtectedRoute>} />
+            <Route path="/deployments/:id/logs" element={<ProtectedRoute> <DeploymentLogs /> </ProtectedRoute>} />
+            <Route path="/project/:id" element={<ProtectedRoute> <ProjectDetails /> </ProtectedRoute>} />
+            <Route path="/analytics/" element={<ProtectedRoute> <Analytics /> </ProtectedRoute>} />
+            <Route path="/analytics/:id" element={<ProtectedRoute> <ProjectAnalytics /> </ProtectedRoute>} />
           </Route>
           <Route path="/" element={<Navigate to="/home" replace />} />
         </Routes>

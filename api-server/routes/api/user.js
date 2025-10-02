@@ -43,7 +43,7 @@ router.post("/signup", async (req, res) => {
     .json({ status: "success", data: { userId: user.id, email: user.email } });
 });
 
-router.delete("/:userId", async (req, res) => {
+router.delete("/:userId", authMiddleware, async (req, res) => {
   const { userId } = req.params;
 
   try {

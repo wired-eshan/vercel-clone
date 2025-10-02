@@ -1,5 +1,4 @@
 import React, { useState } from 'react'
-import { useAuth } from "../contexts/AuthContext";
 import { Input } from "@/components/ui/input"
 import { Button } from '@/components/ui/button';
 import projectsApi from '../api/resources/projects';
@@ -16,7 +15,6 @@ interface project {
 }
 
 const Home : React.FC = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
 
   const [githubUrl, setGithubUrl] = useState("");
@@ -48,7 +46,7 @@ const Home : React.FC = () => {
     <>
         <div>
           <center>
-            <h1 className="text-3xl font-bold mt-8">Welcome to ShipStack {user?.name} </h1>
+            <h1 className="text-3xl font-bold mt-8">Welcome to ShipStack</h1>
             <p className="text-xl mb-12">Deploy your frontend projects seamlessly.</p>
             <div className="w-9/12">
               <Input placeholder="Github Repo URL" className="border border-gray-500 my-4" value={githubUrl} onChange={handleChange} />
