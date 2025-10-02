@@ -54,6 +54,7 @@ const Login: React.FC = () => {
         setError(response.message || "Login failed");
       } else {
         Navigate("/home", { replace: true });
+        Navigate(0);
       }
     } catch (err: any) {
       setError(err.response.data.error);

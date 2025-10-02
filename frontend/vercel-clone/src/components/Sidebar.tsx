@@ -13,7 +13,8 @@ import { useAuth } from "../contexts/AuthContext";
 
 const Sidebar: React.FC = () => {
   const navigate = useNavigate();
-
+  const {user} = useAuth();
+  
   const {
     execute: logout,
     error: logoutError,
@@ -37,7 +38,6 @@ const Sidebar: React.FC = () => {
   };
 
   const handleDeleteProfile = async () => {
-    const {user} = useAuth();
     try {
       await deleteProfile(user.userId);
       await logout();
