@@ -33,7 +33,7 @@ const Modal: React.FC<modalPropsType> = ({
   return (
     <>
       <Dialog>
-        <DialogTrigger>{children}</DialogTrigger>
+        <DialogTrigger className="flex justify-between items-center w-full cursor-pointer">{children}</DialogTrigger>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>

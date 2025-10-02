@@ -12,6 +12,7 @@ const { formatTimestamp } = require('./utils/common/formatTimestamp')
 const auth = require('./routes/api/auth');
 const project = require('./routes/api/project');
 const deployment = require('./routes/api/deployment');
+const user = require('./routes/api/user');
 
 const app = express();
 const PORT = 9000;
@@ -49,6 +50,7 @@ app.use(cookieParser()); // Middleware to parse cookies
 app.use('/v1/auth', auth);
 app.use('/v1/projects', project);
 app.use('/v1/deployments', deployment);
+app.use('/v1/users', user);
 
 app.use(express.json());
 
