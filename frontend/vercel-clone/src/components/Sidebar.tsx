@@ -13,7 +13,6 @@ import { useAuth } from "../contexts/AuthContext";
 
 const Sidebar: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
 
   const {
     execute: logout,
@@ -38,8 +37,10 @@ const Sidebar: React.FC = () => {
   };
 
   const handleDeleteProfile = async () => {
+    const {user} = useAuth();
     try {
-      await deleteProfile(user.id);
+      await deleteProfile(user.userId);
+      await logout();
       navigate(0);
       navigate("/login");
     } catch(error) {
@@ -80,8 +81,8 @@ const Sidebar: React.FC = () => {
       </nav>
       <div className="border rounded border-gray-700 bg-gray-800 hover:bg-gray-900 m-2">
         <Popover>
-          <PopoverTrigger className="w-full cursor-pointer">
-            <button className="p-4 cursor-pointer">User settings</button>
+          <PopoverTrigger className="w-full p-4 cursor-pointer">
+            User settings
           </PopoverTrigger>
           <PopoverContent className="p-0 text-white bg-black">
 
@@ -94,7 +95,7 @@ const Sidebar: React.FC = () => {
                 secondaryBtn={"Cancel"}
                 onConfirm={handleDeleteProfile}
               >
-                <button className="p-4 cursor-pointer">Delete profile</button>
+                Delete profile
                 <UserX size={18} />
               </Modal>
             </div>
@@ -107,7 +108,7 @@ const Sidebar: React.FC = () => {
                 secondaryBtn={"Cancel"}
                 onConfirm={handleLogout}
               >
-                <button className="p-4 cursor-pointer">Logout</button>
+                Logout
                 <LogOut size={18} />
               </Modal>
             </div>            

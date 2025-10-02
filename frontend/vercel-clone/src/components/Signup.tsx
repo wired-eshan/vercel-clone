@@ -1,70 +1,53 @@
-import React, { useState, useEffect } from "react";
-import { useAuth } from "../contexts/AuthContext";
-import { useNavigate, useLocation } from "react-router-dom";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Loader } from "lucide-react";
-import { toast, Toaster } from "sonner";
+import usersApi from "../api/resources/user";
+import useApi from "../hooks/useApi";
 
 interface InputState {
   email: string;
   password: string;
+  confirmPassword: string;
 }
 
-const Login: React.FC = () => {
-  const [input, setInput] = useState({ email: "", password: "" });
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const { login, isLoggedIn } = useAuth();
+const Signup: React.FC = () => {
   const Navigate = useNavigate();
-  const pageState = useLocation();
-  
-  useEffect(() => {
-    console.log("page state :", pageState)
-    if(pageState?.state){
-      console.log("toast");
-      toast("Account created", {description: `Account created with ${pageState.state}`})
-    }
-  }, []);
 
-  useEffect(() => {
-    if (isLoggedIn) {
-      Navigate("/home", { replace: true });
-    }
-  }, [isLoggedIn, Navigate]);
+  const [input, setInput] = useState({
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
+  const [error, setError] = useState<string | null>(null);
+
+  const {
+    execute: signup,
+    error: signupError,
+    loading,
+  } = useApi(usersApi.signup);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setInput((prev: InputState) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e : React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    try {
-      setLoading(true);
-      setError("");
-      const { email, password } = input;
-      if (!email || !password) {
-        setError("Email and password are required");
-        return;
-      }
-      const response = await login(email, password);
-      console.log("Login response:", response);
-
-      if (!response.success) {
-        setError(response.message || "Login failed");
-      } else {
-        Navigate("/home", { replace: true });
-      }
-    } catch (err: any) {
-      setError(err.response.data.error);
-    } finally {
-      setLoading(false);
+    if (input.confirmPassword !== input.password) {
+      setError("Passwords do not match.");
+    } else {
+        try {
+        await signup({ email: input.email, password: input.password });
+        console.log("user email: ", input.email)
+        Navigate("/login", {state: input.email});
+        } catch (err) {
+        console.log("Error signing up: ", err);
+        }
     }
   };
 
   return (
     <>
-      <Toaster />
       <div className="flex-col content-center justify-items-center bg-gradient-to-b from-transparent to-black min-h-screen">
         <div>
           <h1 className="font-bold text-3xl mb-5 text-gray-300">
@@ -76,11 +59,13 @@ const Login: React.FC = () => {
           className="flex-col text-center bg-gradient-to-tr from-transparent to-black justify-items-center border border-gray-900 rounded-xl pb-12 w-full max-w-md mx-auto"
         >
           <div>
-            <h1 className="text-2xl font-bold mt-8 mb-2">Welcome back. Please Sign in</h1>
+            <h1 className="text-2xl font-bold mt-8 mb-2">
+              Get started with ShipStack.
+            </h1>
             <div className="text-gray-400 mb-5">
-              <span>Don't have an account? </span>
-              <a href="/signup" className="underline cursor-pointer hover:text-white hover:font-semibold">
-                Sign up
+              <span>Already signed up? </span>
+              <a href="/login" className="underline cursor-pointer hover:text-white hover:font-semibold">
+                Log in.
               </a>
             </div>
             <div>
@@ -105,12 +90,24 @@ const Login: React.FC = () => {
                 required
               />
             </div>
+            <div>
+              <input
+                className="border border-gray-700 rounded-xl py-2 px-4 mb-4 w-full"
+                type="password"
+                name="confirmPassword"
+                placeholder="Confirm Password"
+                value={input.confirmPassword}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            {signupError && <p className="text-red-500 mb-2">{signupError}</p>}
             {error && <p className="text-red-500 mb-2">{error}</p>}
             <button
               className="border border-gray-500 cursor-pointer rounded-xl py-2 px-8 hover:text-black hover:bg-gray-300 hover:scale-105 "
               type="submit"
             >
-              {loading ? <Loader /> : "Login"}
+              {loading ? <Loader /> : "Create Account"}
             </button>
           </div>
         </form>
@@ -119,4 +116,4 @@ const Login: React.FC = () => {
   );
 };
 
-export default Login;
+export default Signup;
