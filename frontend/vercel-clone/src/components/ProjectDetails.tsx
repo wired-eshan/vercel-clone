@@ -103,7 +103,7 @@ const ProjectDetails: React.FC = () => {
           secondaryBtn={"Cancel"}
           onConfirm={deleteProject}
         >
-          <Trash2 color="#d23737" className="mx-8 cursor-pointer" />
+          <Trash2 color="#d23737" className="mx-8 cursor-pointer ml-auto" />
         </Modal>
         {deleteProjectError && (
           <p className="text-red-500 mt-2">{deleteProjectError}</p>

@@ -127,7 +127,7 @@ const DeploymentLogs: React.FC = () => {
           primaryBtnVariant={"destructive"}
           onConfirm={deleteDeployment}
         >
-          <Trash2 color="#d23737" className="mx-8 cursor-pointer" />
+          <Trash2 color="#d23737" className="mx-8 cursor-pointer ml-auto" />
         </Modal>
       </div>
       <h1 className="text-xl mb-4 font-semibold ">{project?.name}</h1>
