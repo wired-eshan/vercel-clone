@@ -33,7 +33,7 @@ const Home : React.FC = () => {
       const deployment = await projectsApi.upload({projectId: res.data.data.project.id});
       console.log("/upload api response: ", deployment);
       const deploymentId = deployment.data.data.deploymentId;
-      navigate(`/deployments/${deploymentId}/logs`, {state: res.data.data});
+      navigate(`/deployments/${deploymentId}/logs`, {state: res.data.data.project});
     } catch (e : any) {
       console.log("error deploying project: ", e);
       setError(e.response.data.error);

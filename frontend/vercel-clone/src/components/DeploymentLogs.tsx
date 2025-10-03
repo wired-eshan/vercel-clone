@@ -6,6 +6,7 @@ import { Trash2 } from "lucide-react";
 import useApi from "../hooks/useApi";
 import { getProjectUrl } from "../utils/getProjectDomain";
 import Modal from "./Modal";
+import { Skeleton } from "@/components/ui/skeleton"
 
 const DeploymentLogs: React.FC = () => {
   const navigate = useNavigate();
@@ -150,6 +151,7 @@ const DeploymentLogs: React.FC = () => {
         ref={logContainerRef}
         className="h-100 overflow-y-auto p-4 bg-black border border-gray-700"
       >
+        {(logs.length == 0) && <Skeleton className="h-full w-full" />}
         {logs.map((log, idx) => (
           <div key={idx}>
             <span className="text-gray-600">[{log.timestamp}] </span>
