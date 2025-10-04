@@ -276,17 +276,6 @@ router.get("/analytics", authMiddleware, async (req, res) => {
   res.status(200).json({ projects: projects });
 });
 
-router.get("/visits/:projectId", authMiddleware, async (req, res) => {
-  const { projectId } = req.params;
-
-  const visits = await prisma.analytic.count({
-    where: {
-      projectId: projectId,
-    },
-  });
-  res.status(200).json({ visits: visits });
-});
-
 router.post("/analytics/:projectId", authMiddleware, async (req, res) => {
   const { projectId } = req.params;
   console.log(req);
