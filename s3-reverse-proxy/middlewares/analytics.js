@@ -5,7 +5,9 @@ const prisma = new PrismaClient();
 
 const analyticsMiddleware = async (req, res, next) => {
   try {
-    const ipAddress = req.ip;
+    console.log("reached analytics middleware")
+    // const ipAddress = req.ip;
+    const ipAddress = "24.48.0.1";
     const response = await axios.get(`http://ip-api.com/json/${ipAddress}`);
     console.log("fetch ip geolocation api response: ", response);
 

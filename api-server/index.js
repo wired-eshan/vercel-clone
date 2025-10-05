@@ -56,7 +56,7 @@ app.use(express.json());
 
 async function initKafkaConsumer() {
     await consumer.connect();
-    await consumer.subscribe({ topics: ['container-logs'], fromBeginning:true} );
+    await consumer.subscribe({ topics: ['container-logs', 'analytics'], fromBeginning:true} );
 
     await consumer.run({
         autoCommit: true,
@@ -65,37 +65,48 @@ async function initKafkaConsumer() {
             console.log(`Received ${messages.length} messages from Kafka`);
             for (const message of messages) {
                 const stringMessage = message.value.toString(); 
-                const { PROJECT_ID, DEPLOYMENT_ID, log, timestamp } = JSON.parse(stringMessage);
-                const formattedTimestamp = formatTimestamp(timestamp);
-
                 try {
-                    const {query_id} = await client.insert({
-                        table: 'log_events',
-                        values: [{ event_id: uuidv4(), deployment_id: DEPLOYMENT_ID, log: log, timestamp: formattedTimestamp }],
-                        format: 'JSONEachRow'
-                    });
-                    console.log(`Inserted log event with query_id: ${query_id}`);
+                    if(batch.topic === 'container-logs') {
+                        const { PROJECT_ID, DEPLOYMENT_ID, log, timestamp } = JSON.parse(stringMessage);
+                        const formattedTimestamp = formatTimestamp(timestamp);
+                        const {query_id} = await client.insert({
+                            table: 'log_events',
+                            values: [{ event_id: uuidv4(), deployment_id: DEPLOYMENT_ID, log: log, timestamp: formattedTimestamp }],
+                            format: 'JSONEachRow'
+                        });
+                        console.log(`Inserted log event with query_id: ${query_id}`);
 
-                    //when 'Done uploading build files to S3.' log is inserted, update deployment status to 'SUCCESSFUL'
-                    if (log.includes('Done uploading build files to S3.')) {
-                        await prisma.deployment.update({
-                            where: { id: DEPLOYMENT_ID },
-                            data: { status: 'SUCCESSFUL' }
+                        //when 'Done uploading build files to S3.' log is inserted, update deployment status to 'SUCCESSFUL'
+                        if (log.includes('Done uploading build files to S3.')) {
+                            await prisma.deployment.update({
+                                where: { id: DEPLOYMENT_ID },
+                                data: { status: 'SUCCESSFUL' }
+                            });
+                        }
+                        //when 'Build failed' log is inserted, update deployment status to 'FAILED'
+                        if (log.includes('Build failed')) {
+                            await prisma.deployment.update({
+                                where: { id: DEPLOYMENT_ID },
+                                data: { status: 'FAILED' }
+                            });
+                        }
+                    } else if (batch.topic === 'analytics') {
+                        const { lat, lon, country, city, projectId, timestamp } = JSON.parse(stringMessage);
+                        const formattedTimestamp = formatTimestamp(timestamp);
+
+                        const { query_id } = await client.insert({
+                            table: 'analytics',
+                            values: [{ event_id: uuidv4(), lat, lon, country, city, project_id: projectId, timestamp: formattedTimestamp }],
+                            format: 'JSONEachRow'
                         });
-                    }
-                    //when 'Build failed' log is inserted, update deployment status to 'FAILED'
-                    if (log.includes('Build failed')) {
-                        await prisma.deployment.update({
-                            where: { id: DEPLOYMENT_ID },
-                            data: { status: 'FAILED' }
-                        });
+                        console.log(`Inserted analytics event with query_id: ${query_id}`);
                     }
 
                     await commitOffsetsIfNecessary(message.offset);
                     resolveOffset(message.offset);
                     await heartbeat();
                 } catch (error) {
-                    console.error('Error inserting log event:', error);
+                    console.error(`Error processing message from topic ${batch.topic}:`, error);
                 }
             }
         }
