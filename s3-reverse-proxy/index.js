@@ -5,6 +5,8 @@ const { analyticsMiddleware } = require("./middlewares/analytics");
 const { Kafka, Partitioners } = require("kafkajs");
 const path = require("path");
 const fs = require("fs");
+const cookieParser = require('cookie-parser');
+const { v4 : uuidv4 } = require('uuid');
 
 const app = express();
 const PORT = 8000;
@@ -37,26 +39,38 @@ const producer = kafka.producer({
   }
 })();
 
+app.use(cookieParser());
 app.use(analyticsMiddleware);
 
-async function publishAnalytics(analyticsData) {
+async function publishAnalytics(analyticsData ,req, res) {
   console.log("Publishing analytics: ", analyticsData);
   const { lat, lon, country, city, projectId } = analyticsData;
   const timestamp = new Date();
-
+  const eventId = uuidv4();
   try {
-    await producer.send({
-      topic: `analytics`,
-      messages: [
-        {
-          key: "analytic",
-          value: JSON.stringify({ lat, lon, country, city, projectId, timestamp }),
-        },
-      ],
-    });
-    console.log("Message published successfully");
+    if(!req.cookies.visitId) {
+      await producer.send({
+        topic: `analytics`,
+        messages: [
+          {
+            key: eventId,
+            value: JSON.stringify({ eventId : eventId, lat, lon, country, city, projectId, timestamp }),
+          },
+        ],
+      });
+      console.log("Message published successfully");
+    }
   } catch (error) {
     console.error("Failed to publish message:", error);
+  } finally {
+    if(!req.cookies.visitId) {
+      visitId = uuidv4();
+      // Set cookie with visit ID that expires in 30 minutes
+      res.cookie('visitId', visitId, { 
+        maxAge: 30 * 60 * 1000,
+        httpOnly: true
+      });
+    }
   }
 }
 
@@ -89,7 +103,8 @@ app.use("/", async (req, res, next) => {
   });
   console.log(`Proxying request to: ${targetUrl}${req.url}`);
 
-  if (req.analytics) {
+  if (req.analytics && !req.analyticsProcessed) {
+    req.analyticsProcessed = true;
     const { lat, lon, country, city } = req.analytics;
     await prisma.analytic.create({
       data: {
@@ -106,8 +121,8 @@ app.use("/", async (req, res, next) => {
         lon: lon.toString(),
         country: country,
         city: city,
-        project: project.id,
-    });
+        projectId: project.id,
+    }, req, res);
   }
 
   return proxy(req, res, next);

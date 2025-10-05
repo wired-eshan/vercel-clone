@@ -1,11 +1,7 @@
-const { PrismaClient } = require("../generated/prisma");
 const axios = require("axios");
-
-const prisma = new PrismaClient();
 
 const analyticsMiddleware = async (req, res, next) => {
   try {
-    console.log("reached analytics middleware")
     // const ipAddress = req.ip;
     const ipAddress = "24.48.0.1";
     const response = await axios.get(`http://ip-api.com/json/${ipAddress}`);
@@ -13,7 +9,7 @@ const analyticsMiddleware = async (req, res, next) => {
 
     if (response.data.status == "success") {
       const { lat, lon, country, city } = response.data;
-      req.analytics = { lat, lon, country, city };
+      req.analytics = { lat, lon, country, city, ipAddress };
     }
     
   } catch (err) {

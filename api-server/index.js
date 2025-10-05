@@ -91,12 +91,12 @@ async function initKafkaConsumer() {
                             });
                         }
                     } else if (batch.topic === 'analytics') {
-                        const { lat, lon, country, city, projectId, timestamp } = JSON.parse(stringMessage);
+                        const { eventId, lat, lon, country, city, projectId, timestamp } = JSON.parse(stringMessage);
                         const formattedTimestamp = formatTimestamp(timestamp);
 
                         const { query_id } = await client.insert({
                             table: 'analytics',
-                            values: [{ event_id: uuidv4(), lat, lon, country, city, project_id: projectId, timestamp: formattedTimestamp }],
+                            values: [{ event_id: eventId, lat, lon, country, city, projectId: projectId, timestamp: formattedTimestamp }],
                             format: 'JSONEachRow'
                         });
                         console.log(`Inserted analytics event with query_id: ${query_id}`);
