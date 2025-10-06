@@ -15,16 +15,7 @@ const Analytics: React.FC = () => {
     useEffect(() => {
         if(data) {
             const projectsList = data.data.projects;
-
-            if(projectsList && projectsList.length > 0) {
-                const projectAnalytics = projectsList.map((project : any) => ({
-                    ...project,
-                    visits: project.Analytics.length
-                }));
-                setProjects(projectAnalytics);
-            } else {
-                setProjects([]);
-            }
+            setProjects(projectsList);
         }
     }, [data]);
 

@@ -264,16 +264,64 @@ router.delete("/:projectId", authMiddleware, async (req, res) => {
   }
 });
 
+async function countRowsByProjectIdsBatch(projectIds) {
+  try {
+    const query = `
+      SELECT 
+        projectId,
+        COUNT(*) as count 
+      FROM analytics
+      WHERE projectId IN ({projectIds: Array(String)})
+      GROUP BY projectId
+    `;
+    
+    const resultSet = await client.query({
+      query: query,
+      format: 'JSONEachRow',
+      query_params: {
+        projectIds: projectIds
+      }
+    });
+    
+    const data = await resultSet.json();
+    
+    // Create a map for easy lookup
+    const countMap = {};
+    data.forEach(row => {
+      countMap[row.projectId] = row.count;
+    });
+    
+    // Ensure all projectIds are in the result (set to 0 if not found)
+    projectIds.forEach(id => {
+      if (!(id in countMap)) {
+        countMap[id] = 0;
+      }
+    });
+    
+    return countMap;
+    
+  } catch (error) {
+    console.error('Error batch counting rows:', error);
+    throw error;
+  }
+}
+
 router.get("/analytics", authMiddleware, async (req, res) => {
   const projects = await prisma.project.findMany({
     where: {
       userId: req.user.userId,
-    },
-    include: {
-      Analytics: true,
-    },
+    }
   });
-  res.status(200).json({ projects: projects });
+
+  const projectIds = projects.map(project => project.id);
+  const countMap = await countRowsByProjectIdsBatch(projectIds);
+
+    const projectsWithCounts = projects.map(project => ({
+      ...project,
+      visits: countMap[project.id] || 0
+    }));
+
+  res.status(200).json({ projects: projectsWithCounts });
 });
 
 router.post("/analytics/:projectId", authMiddleware, async (req, res) => {
