@@ -16,7 +16,7 @@ const {
 const dotenv = require("dotenv");
 dotenv.config();
 
-router.use(authMiddleware);
+//router.use(authMiddleware);
 
 const prisma = new PrismaClient();
 
@@ -324,28 +324,34 @@ router.get("/analytics", authMiddleware, async (req, res) => {
   res.status(200).json({ projects: projectsWithCounts });
 });
 
-router.post("/analytics/:projectId", authMiddleware, async (req, res) => {
+router.post("/analytics/:projectId", async (req, res) => {
   const { projectId } = req.params;
-  console.log(req);
-  const startDate = req.body.startDateString;
-  const endDate = req.body.endDateString;
+  const query = `
+    SELECT 
+      toDate(timestamp) as date,
+      COUNT(*) as visits
+    FROM analytics
+    WHERE projectId = {projectId: String}
+    GROUP BY date
+    ORDER BY date ASC
+  `;
 
-  const results = await prisma.$queryRaw`
-    SELECT DATE("timestamp") as date, COUNT(*) as count
-    FROM "Analytic"
-    WHERE "projectId" = ${projectId}
-        AND "timestamp" >= ${startDate}::date
-        AND "timestamp" < ${endDate}::date + INTERVAL '1 day'
-    GROUP BY DATE("timestamp")
-    ORDER BY date;
-    `;
-  const normalizedRes = results.map((r) => ({
-    date: r.date.toLocaleDateString("en-CA"),
-    visits: Number(r.count),
+  const resultSet = await client.query({
+    query: query,
+    format: 'JSONEachRow',
+    query_params: {
+      projectId: projectId
+    }
+  });
+  
+  const data = await resultSet.json();
+  
+  // Format dates as YYYY-MM-DD strings
+  const analytics =  data.map(row => ({
+    date: row.date,
+    visits: parseInt(row.visits, 10)
   }));
-
-  console.log("anlaytics: ", normalizedRes);
-  res.json(normalizedRes);
+  res.json(analytics);
 });
 
 router.get("/:projectId", authMiddleware, async (req, res) => {
