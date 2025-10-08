@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import {
   LineChart,
@@ -29,6 +29,8 @@ const ProjectAnalytics: React.FC = () => {
   const projectId = id || "";
 
   const pageState = useLocation();
+
+  const analyticsRef = useRef([]);
   const todaysDate = new Date();
   const initalStartDate = new Date();
   initalStartDate.setDate(initalStartDate.getDate() - 7);
@@ -64,22 +66,12 @@ const ProjectAnalytics: React.FC = () => {
   }, [projectData]);
 
   useEffect(() => {
-    if (startDate && endDate && startDate > endDate) {
-      setError(
-        "Inapproriate date range. End date should be greater than start date."
-      );
-      return;
-    }
     async function getAnalytics() {
       try {
         setLoadingAnalytics(true);
-        const startDateString = startDate?.toLocaleDateString("en-CA");
-        const endDateString = endDate?.toLocaleDateString("en-CA");
-        const response = await projectsApi.getProjectAnalytics(project.id, {
-          startDateString: startDateString,
-          endDateString: endDateString,
-        });
+        const response = await projectsApi.getProjectAnalytics(project.id);
         setData(response.data);
+        analyticsRef.current = response.data;
         setError(null);
       } catch (err) {
         console.log("Error fetching analytics: ", err);
@@ -89,7 +81,20 @@ const ProjectAnalytics: React.FC = () => {
       }
     }
     getAnalytics();
-  }, [startDate, endDate, project]);
+  }, [project]);
+
+  useEffect(() => {
+    if (startDate && endDate && startDate > endDate) {
+      setError(
+        "Inapproriate date range. End date should be greater than start date."
+      );
+      return;
+    }
+    const startDateString = startDate?.toLocaleDateString("en-CA");
+    const endDateString = endDate?.toLocaleDateString("en-CA");
+    console.log("analyticsRef: ", analyticsRef);
+    //#TODO: modify chart data based on start and end date operating on analyticsRef.current array
+  }, [startDate, endDate])
 
   return (
     <div className="pb-2 px-2 mb-4">

@@ -33,8 +33,8 @@ const projectsApi = {
     getAnalytics: () => {
         return axiosClient.get(`/v1/projects/analytics`);
     },
-    getProjectAnalytics: (projectId: string, data : getProjectAnalyticsData) => {
-        return axiosClient.post(`/v1/projects/analytics/${projectId}`, data);
+    getProjectAnalytics: (projectId: string) => {
+        return axiosClient.post(`/v1/projects/analytics/${projectId}`);
     }
 };
 
