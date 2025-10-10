@@ -24,13 +24,18 @@ import useApi from "@/hooks/useApi";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getProjectUrl } from "../utils/getProjectDomain";
 
+interface analytics {
+  date: string,
+  visits: number
+}
+
 const ProjectAnalytics: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const projectId = id || "";
 
   const pageState = useLocation();
 
-  const analyticsRef = useRef([]);
+  const analyticsRef = useRef<analytics[]>([]);
   const todaysDate = new Date();
   const initalStartDate = new Date();
   initalStartDate.setDate(initalStartDate.getDate() - 7);
@@ -48,7 +53,7 @@ const ProjectAnalytics: React.FC = () => {
   const [startDate, setStartDate] = useState<Date | undefined>(initalStartDate);
   const [endDateOpen, setEndDateOpen] = useState(false);
   const [endDate, setEndDate] = useState<Date | undefined>(todaysDate);
-  const [data, setData] = useState([]);
+  const [data, setData] = useState<analytics[]>([]);
   const [error, setError] = useState<any>();
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
 
@@ -83,6 +88,26 @@ const ProjectAnalytics: React.FC = () => {
     getAnalytics();
   }, [project]);
 
+const setAnalyticsChartData = (startDate: Date, endDate: Date) => {
+  if (analyticsRef.current.length === 0) {
+    return [];
+  }
+
+  const resultData = analyticsRef.current.filter((item) => {
+    const currentDate = new Date(item.date);
+    // Reset time for accurate date comparison
+    currentDate.setHours(0, 0, 0, 0);
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(endDate);
+    end.setHours(0, 0, 0, 0);
+    
+    return currentDate >= start && currentDate <= end;
+  });
+
+  setData(resultData);
+};
+
   useEffect(() => {
     if (startDate && endDate && startDate > endDate) {
       setError(
@@ -90,10 +115,9 @@ const ProjectAnalytics: React.FC = () => {
       );
       return;
     }
-    const startDateString = startDate?.toLocaleDateString("en-CA");
-    const endDateString = endDate?.toLocaleDateString("en-CA");
-    console.log("analyticsRef: ", analyticsRef);
-    //#TODO: modify chart data based on start and end date operating on analyticsRef.current array
+    if (startDate && endDate) {
+      setAnalyticsChartData(startDate, endDate);
+    }
   }, [startDate, endDate])
 
   return (
