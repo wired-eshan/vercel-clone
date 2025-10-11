@@ -4,7 +4,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { LogOut, UserX } from "lucide-react";
+import { CircleUserRound, LogOut, UserX } from "lucide-react";
 import Modal from "./Modal";
 import useApi from "../hooks/useApi";
 import usersApi from "../api/resources/user"
@@ -85,7 +85,10 @@ const Sidebar: React.FC = () => {
             User settings
           </PopoverTrigger>
           <PopoverContent className="p-0 text-white bg-black">
-
+            <div className="flex justify-center content-aroundw items-center p-2">
+              <CircleUserRound size={16} className="mr-2" />
+              {user?.email}
+            </div>
             <div className="border cursor-pointer hover:bg-red-400 pr-4 flex justify-between items-center">
               <Modal
                 title={`Delete Profile`}

@@ -44,9 +44,112 @@ async function publishLog(log) {
   await producer.send({
     topic: `container-logs`,
     messages: [
-      { key: "log", value: JSON.stringify({ PROJECT_ID, DEPLOYMENT_ID, log, timestamp}) },
+      {
+        key: "log",
+        value: JSON.stringify({ PROJECT_ID, DEPLOYMENT_ID, log, timestamp }),
+      },
     ],
   });
+}
+
+async function validateBuildScript(projectPath) {
+  const packagePath = path.join(projectPath, "package.json");
+  if (!fs.existsSync(packagePath)) {
+    await publishLog(`package.json not found at ${projectPath}`);
+    throw new Error(`package.json not found at ${projectPath}`);
+  }
+
+  const pkg = JSON.parse(fs.readFileSync(packagePath, "utf-8"));
+  const buildScript = pkg.scripts?.build;
+  
+  if (!buildScript) {
+    await publishLog("No build script found");
+    throw new Error(`No build script found`);
+  }
+
+  // Strict allowlist - exact matches only
+  const allowedScripts = [
+    "vite build",
+    "next build",
+    "react-scripts build",
+    "tsc && vite build",
+    "tsc && next build",
+    "tsc -b && vite build",
+    "tsc -b && next build",
+  ];
+
+  // Check for exact match first
+  if (allowedScripts.includes(buildScript.trim())) {
+    console.log("Build script validated successfully:", buildScript);
+    return true;
+  }
+
+  // Comprehensive unsafe patterns
+  const unsafePatterns = [
+    /\brm\b/i,
+    /\brmdir\b/i,
+    /\bsudo\b/i,
+    /\bchmod\b/i,
+    /\bchown\b/i,
+    /\bwget\b/i,
+    /\bcurl\b/i,
+    /\bscp\b/i,
+    /\bssh\b/i,
+    /\bexec\b/i,
+    /\beval\b/i,
+    /`/,                    // Backticks
+    /\$\(/,                 // Command substitution
+    />/,                    // Redirect
+    /</,                    // Input redirect
+    /\|/,                   // Pipe
+    /;/,                    // Command separator
+    /\|\|/,                 // OR operator
+    /&&/,                   // AND operator (if not in allowlist)
+    /&(?!&)/,               // Background execution
+    /\bnode\s+-e\b/i,       // Node eval
+    /\bpython\s+-c\b/i,     // Python exec
+    /\bnpm\s+run\b/i,       // Can run arbitrary scripts
+    /\byarn\s+run\b/i,      // Can run arbitrary scripts
+    /\bexport\b/i,          // Environment manipulation
+    /\bNODE_OPTIONS\b/i,    // Node options injection
+    /\n/,                   // Newlines
+  ];
+
+  for (const pattern of unsafePatterns) {
+    if (pattern.test(buildScript)) {
+      await publishLog(`Malicious pattern detected: ${pattern}`);
+      throw new Error(`Malicious pattern detected in: "${buildScript}"`);
+    }
+  }
+
+  // If we reach here, script doesn't match allowlist
+  console.warn(`Build script not in allowlist: "${buildScript}"`);
+  await publishLog(`Build script not in allowlist: "${buildScript}"`);
+  throw new Error("Build script not valid");
+}
+
+async function getBuildFolder(projectPath) {
+  const packagePath = path.join(projectPath, 'package.json');
+
+  if (!fs.existsSync(packagePath)) {
+    await publishLog(`package.json not found at ${projectPath}`);
+    throw new Error(`package.json not found at ${projectPath}`);
+  }
+
+  const pkg = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+  const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+
+  if (deps['next']) return '.next';
+  if (deps['vite']) return 'dist';
+  if (deps['react-scripts']) return 'build';
+
+  // fallback: infer from build script
+  const buildScript = pkg.scripts?.build || '';
+  if (buildScript.includes('vite')) return 'dist';
+  if (buildScript.includes('next')) return '.next';
+  if (buildScript.includes('react-scripts')) return 'build';
+
+  throw new Error('Unable to detect build folder.');
 }
 
 async function init() {
@@ -85,6 +188,28 @@ async function init() {
 
   const outputPath = path.join(__dirname, "output");
 
+  //validate build script
+  //get the build files folder
+  let buildFolder = "";
+  try {
+    const isBuildScriptValid = await validateBuildScript(outputPath);
+    if(!isBuildScriptValid) {
+      throw new Error("Build script not valid");
+    }
+    buildFolder = await getBuildFolder(outputPath);
+  } catch (error) {
+    console.log(error);
+    await prisma.deployment.update({
+      where: {
+        id: DEPLOYMENT_ID,
+      },
+      data: {
+        status: "FAILED",
+      },
+    });
+    process.exit(0);
+  }
+
   const t = exec(`cd ${outputPath} && npm install && npm run build`);
   t.stdout.on("data", async (data) => {
     console.log(`stdout: ${data}`);
@@ -102,7 +227,7 @@ async function init() {
     await publishLog("Build completed.");
 
     try {
-      const distPath = path.join(__dirname, "output", "dist");
+      const distPath = path.join(__dirname, "output", buildFolder);
 
       const distFolderContents = fs.readdirSync(distPath, { recursive: true });
 
@@ -145,6 +270,7 @@ async function init() {
       }
       //#TODO: verify if folder is created in S3
       await publishLog(`Done uploading build files to S3.`);
+      await publishLog(`App deployed successfully.`);
       await prisma.deployment.update({
         where: {
           id: DEPLOYMENT_ID,
@@ -155,7 +281,7 @@ async function init() {
       });
     } catch (error) {
       console.error("Error reading dist folder:", error);
-      await publishLog(`Build failed.`);
+      await publishLog(`Deployment failed.`);
       await publishLog(`Error reading dist folder: ${error.message}`);
       await prisma.deployment.update({
         where: {
