@@ -2,7 +2,7 @@
 Vercel like application to build and deploy react app using only Github repository URL. Vite, react, and nextJS projects are supported.
 
 ## Architecture
-<img width="720" height="1600" alt="image" src="https://github.com/user-attachments/assets/97f8c973-39f0-474c-9f01-25e4cc01ae28" />
+<img width="1196" height="581" alt="Screenshot 2025-10-12 at 8 30 39 PM" src="https://github.com/user-attachments/assets/5237ae17-574f-4ebd-a134-1ae60a6ff688" />
 
 ## Setup
 ### API Server
