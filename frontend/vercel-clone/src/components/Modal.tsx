@@ -33,11 +33,9 @@ const Modal: React.FC<modalPropsType> = ({
   return (
     <>
       <Dialog>
-        <div>
           <DialogTrigger className="flex justify-between items-center w-full p-4 cursor-pointer">
             {children}
           </DialogTrigger>
-        </div>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>

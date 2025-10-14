@@ -106,15 +106,6 @@ app.use("/", async (req, res, next) => {
   if (req.analytics && !req.analyticsProcessed) {
     req.analyticsProcessed = true;
     const { lat, lon, country, city } = req.analytics;
-    await prisma.analytic.create({
-      data: {
-        lat: lat.toString(),
-        lon: lon.toString(),
-        country: country,
-        city: city,
-        project: { connect: { id: project.id } },
-      }
-    });
 
     await publishAnalytics({
         lat: lat.toString(),

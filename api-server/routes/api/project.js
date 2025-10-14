@@ -314,6 +314,11 @@ router.get("/analytics", authMiddleware, async (req, res) => {
   });
 
   const projectIds = projects.map(project => project.id);
+
+  if(projectIds.length == 0) {
+    return res.status(200).json({});
+  }
+
   const countMap = await countRowsByProjectIdsBatch(projectIds);
 
     const projectsWithCounts = projects.map(project => ({
