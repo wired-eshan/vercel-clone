@@ -63,3 +63,17 @@ ENGINE=MergeTree PARTITION BY toYYYYMM(timestamp)
 ORDER BY (timestamp);
 
 #### Query to create table for analytics
+CREATE TABLE analytics (
+    event_id UUID,
+    timestamp DateTime64(3),
+    lat Nullable(String),
+    lon Nullable(String),
+    country Nullable(String),
+    city Nullable(String),
+    projectId String,
+    metadata Nullable(String)
+)
+ENGINE = MergeTree
+PARTITION BY projectId
+ORDER BY (projectId, timestamp);
+
