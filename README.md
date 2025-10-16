@@ -49,3 +49,17 @@ Add ca.pem certificate file to /prisma directory for postgresql connection.
 Add kafka.pem certificate file to /build-server directory for kafka connection.
 
 Set AWS S3 and kafka configurations in script.js
+
+### Clickhouse DB setup
+#### Query to create table for build and deployment logs
+CREATE TABLE log_events (
+  event_id UUID,
+  timestamp DateTime64(6),
+  deployment_id Nullable(String),
+  log String,
+  metadata Nullable(String)
+)
+ENGINE=MergeTree PARTITION BY toYYYYMM(timestamp)
+ORDER BY (timestamp);
+
+#### Query to create table for analytics
