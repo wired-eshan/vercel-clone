@@ -1,5 +1,5 @@
 # vercel-clone
-Vercel like application to build and deploy react app using only Github repository URL. Vite, react, and nextJS projects are supported.
+Vercel like application to build and deploy react app using only Github repository URL. Plain React and Vite React projects are supported.
 
 ## Architecture
 <img width="1196" height="581" alt="Screenshot 2025-10-12 at 8 30 39 PM" src="https://github.com/user-attachments/assets/5237ae17-574f-4ebd-a134-1ae60a6ff688" />
