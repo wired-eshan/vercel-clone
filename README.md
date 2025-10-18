@@ -1,9 +1,9 @@
 # vercel-clone
 Vercel like application to build and deploy react app using only Github repository URL. Plain React and Vite React projects are supported.
 
-## Architecture
+## Architecture and Demo
 <img width="1196" height="581" alt="Screenshot 2025-10-12 at 8 30 39 PM" src="https://github.com/user-attachments/assets/5237ae17-574f-4ebd-a134-1ae60a6ff688" />
-
+<video src="[path/to/video.mp4](https://www.youtube.com/watch?v=bFylmOeEkRI)" width="320" height="240" controls></video>
 ## Setup
 ### API Server
 Add ca.pem certificate file to /prisma directory for postgresql connection.
