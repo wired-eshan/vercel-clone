@@ -3,8 +3,10 @@ Vercel like application to build and deploy react app using only Github reposito
 
 ## Architecture and Demo
 <img width="1196" height="581" alt="Screenshot 2025-10-12 at 8 30 39 PM" src="https://github.com/user-attachments/assets/5237ae17-574f-4ebd-a134-1ae60a6ff688" />
-[![Watch the video](https://img.youtube.com/vi/bFylmOeEkRI/maxresdefault.jpg)](https://www.youtube.com/watch?v=bFylmOeEkRI)
 
+<a href="https://www.youtube.com/watch?v=bFylmOeEkRI target="_blank">
+  <img src="https://img.youtube.com/vi/bFylmOeEkRI/default.jpg" alt="Watch the video" width="700"/>
+</a>
 
 ## Setup
 ### API Server
